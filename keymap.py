@@ -57,6 +57,7 @@ def str_to_key_seq(key_str):
 class KeyMap:
     def __init__(self):
         self._key_map = {}
+        self._key_map_explorer = self._key_map
 
     def add_key(self, key_str, cmd):
         key_seq = str_to_key_seq(key_str)
@@ -84,12 +85,34 @@ class KeyMap:
             except:
                 return None
         return prev_key_map[key_seq[-1]][1]
-#
-#km = KeyMap()
-#km.add_key('ciw', 'cmd1')
-#km.add_key('ci)', 'cmd2')
-#km.add_key('ci\'', 'cmd3')
-#km.add_key('G', 'cmd4')
+
+    def get_cmd(self, key_num):
+        try:
+            self._key_map_explorer, cmd = self._key_map_explorer[key_num]
+            if cmd:
+                self._key_map_explorer = self._key_map
+            return cmd
+        except KeyError:
+            self._key_map_explorer = self._key_map
+            return None
+
+km = KeyMap()
+km.add_key('ciw', 'cmd1')
+km.add_key('ci)', 'cmd2')
+km.add_key('ci\'', 'cmd3')
+km.add_key('G', 'cmd4')
+print(km.get_cmd(99))
+print(km.get_cmd(105))
+print(km.get_cmd(41))
+
+print(km.get_cmd(99))
+print(km.get_cmd(71))
+print(km.get_cmd(105))
+print(km.get_cmd(39))
+
+print(km.get_cmd(99))
+print(km.get_cmd(105))
+print(km.get_cmd(119))
 #print(km.get_command([71]))
 #print(km.get_command([99, 105, 41]))
 #print(km.get_command([99, 105, 39]))

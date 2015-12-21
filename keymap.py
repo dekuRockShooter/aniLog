@@ -2,19 +2,26 @@ import curses
 
 KEY_ALT = 123456789
 
-def get_special_seq(special_key, key_str):
+def get_special_seq(key_str):
     """ Finds the numerical representation of a special key sequence.
     """
-    #special_key = '<Ctrl-Alt'
-    #special_key = 'Alt'
-    #special_key = 'Ctrl'
-    is_special = key_str.startswith('<' + special_key + '-')\
-            and key_str[-1] == '>'
-    if is_special and (len(key_str) == len(special_key) + 4):
+    ctrl_alt = '<Ctrl-Alt-'
+    alt = '<Alt-'
+    ctrl = '<Ctrl-'
+    modifier = ''
+    if key_str.startswith(ctrl_alt) and key_str.endswith('>'):
+        modifier = ctrl_alt
+    elif key_str.startswith(ctrl) and key_str.endswith('>'):
+        modifier = ctrl
+    elif key_str.startswith(alt) and key_str.endswith('>'):
+        modifier = alt
+    else:
+        return []
+    if len(key_str) == len(modifier) + 2:
         modified_key = key_str[-2]
-        if (special_key == 'Ctrl') and is_ctrl_modifiable(modified_key):
+        if (modifier == ctrl) and is_ctrl_modifiable(modified_key):
             return [ord(modified_key.lower()) - 96]
-        elif (special_key == 'Alt') and is_alt_modifiable(modified_key):
+        elif (modifier == alt) and is_alt_modifiable(modified_key):
             return [KEY_ALT, ord(modified_key)]
     return []
 
@@ -40,50 +47,50 @@ def str_to_key_seq(key_str):
             key_seq[:] = []
             return key_seq
         elif key == '<':
-            special_num =get_special_seq(key_str[idx:])
+            special_seq =get_special_seq(key_str[idx:])
+            if special_seq:
+                key_seq.extend(special_seq)
+                return key_seq
         key_seq.append(ord(key))
     return key_seq
 
 class KeyMap:
     def __init__(self):
-        self.key_map = {}
+        self._key_map = {}
 
     def add_key(self, key_str, cmd):
-        key_map = self.key_map
+        key_seq = str_to_key_seq(key_str)
+        if not key_seq:
+            return False
+        key_map = self._key_map
         prev_key_map = key_map
-        for idx, x  in enumerate(key_str):
+        for idx, x  in enumerate(key_seq):
             if x not in key_map.keys():
                 break
             key_map = key_map[x][0]
-        for x in key_str[idx:]:
+        for x in key_seq[idx:]:
             prev_key_map = key_map
             key_map[x] = [{}, None]
             key_map = key_map[x][0]
-        prev_key_map[key_str[-1]][1] = cmd
+        prev_key_map[key_seq[-1]][1] = cmd
 
-    def add_special_key(self, key_str):
-        if len(key_str) == 1:
-            return False
-        #if key_str.startswith('ctrl'):
-            #if add
-
-    def get_command(self, key_str):
-        key_map = self.key_map
+    def get_command(self, key_seq):
+        key_map = self._key_map
         prev_key_map = key_map
-        value = []
-        for key in key_str:
+        for key in key_seq:
             prev_key_map = key_map
             try:
                 key_map = key_map[key][0]
             except:
                 return None
-        return prev_key_map[key_str[-1]][1]
-
-km = KeyMap()
-for i in range(1,6):
-    km.add_key('key'+str(i), 'cmd'+str(i))
-km.add_key('e', 'lol')
-print(km.get_command('e'))
-for i in range(1,6):
-    print(km.get_command('key'+str(i)))
-print(get_special_seq('Alt', '<Alt-19>'))
+        return prev_key_map[key_seq[-1]][1]
+#
+#km = KeyMap()
+#km.add_key('ciw', 'cmd1')
+#km.add_key('ci)', 'cmd2')
+#km.add_key('ci\'', 'cmd3')
+#km.add_key('G', 'cmd4')
+#print(km.get_command([71]))
+#print(km.get_command([99, 105, 41]))
+#print(km.get_command([99, 105, 39]))
+#print(km.get_command([99, 105, 119]))

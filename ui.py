@@ -3,7 +3,7 @@ import os
 import keymap
 import commands
 from browser import Browser
-from shared import BrowserFactory
+from shared import BrowserFactory, DBRegistry
 from keymap import KeyMap
 
 class UI:
@@ -21,7 +21,8 @@ class UI:
         self._cur_browser.create()
 
     def destroy(self):
-        self._cur_browser.destroy()
+        DBRegistry.destroy_all()
+        BrowserFactory.destroy_all()
         curses.nocbreak()
         curses.echo()
         curses.curs_set(1)

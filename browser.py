@@ -1,5 +1,5 @@
 import curses
-import db
+import shared
 
 class Browser:
     UP = 1
@@ -12,8 +12,15 @@ class Browser:
     END = 8
 
     def __init__(self, scr_top_row, scr_left_col, scr_bot_row, scr_right_col,\
-            db_name):
-        self._db = db.DBConnection(db_name)
+            db_name, table):
+        try:
+            self._db = shared.DBRegistry.get_db(db_name)
+        except KeyError:
+            shared.DBRegistry.create(db_name)
+            self._db = shared.DBRegistry.get_db(db_name)
+        finally:
+            self._db.connect()
+        self._table = table
         self._cur_line = 0
         self._VIS_RNG = (scr_bot_row - scr_top_row,\
                 scr_right_col - scr_left_col)
@@ -42,8 +49,8 @@ class Browser:
 
     def create(self):
         _cur_row = 0
-        for i in range(0, 90):
-            self._pad.addstr(_cur_row, 0, str(i))
+        for row in self._db.select_all_from(self._table):
+            self._pad.addstr(_cur_row, 0, str(row))
             _cur_row = _cur_row + 1
         self.redraw()
 

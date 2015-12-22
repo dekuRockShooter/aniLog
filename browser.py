@@ -55,7 +55,6 @@ class Browser:
     def scroll(self, direction, quantifier=1):
         prev_line = self._pad.instr(self._cur_row, 0)
         prev_row = self._cur_row
-        change = True
         if direction == Browser.DOWN or direction == Browser.UP:
             if direction == Browser.UP:
                 self._cur_row = self._cur_row - quantifier
@@ -73,12 +72,9 @@ class Browser:
             elif self._cur_row < self._top_row:
                 self._top_row = self._cur_row
                 self._bot_row = self._top_row + self._VIS_RNG[0]
-            else:
-                change = False
 
-        if change:
-            # highlight next line and scroll down
-            self._pad.addstr(prev_row, 0, prev_line)
-            cur_line = self._pad.instr(self._cur_row, 0)
-            self._pad.addstr(self._cur_row, 0, cur_line, curses.A_STANDOUT)
-            self.redraw()
+        # highlight next line and scroll down
+        self._pad.addstr(prev_row, 0, prev_line)
+        cur_line = self._pad.instr(self._cur_row, 0)
+        self._pad.addstr(self._cur_row, 0, cur_line, curses.A_STANDOUT)
+        self.redraw()

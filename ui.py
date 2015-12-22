@@ -1,13 +1,16 @@
 import curses
 import os
 import keymap
+import commands
 from browser import Browser
 from shared import BrowserFactory
+from keymap import KeyMap
 
 class UI:
-    def __init__(self):
+    def __init__(self, key_map):
         self._cur_browser = BrowserFactory.get_cur()
         self._win = None
+        self._key_map = key_map
 
     def create(self):
         os.environ['ESCDELAY'] = '25'
@@ -28,4 +31,6 @@ class UI:
         key = 0
         while key != ord('q'):
             key = self._win.getch()
-            self._cur_browser.scroll(Browser.DOWN)
+            cmd = self._key_map.get_cmd(key)
+            if cmd:
+                cmd.execute()

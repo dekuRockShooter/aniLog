@@ -1,4 +1,5 @@
 import curses
+import db
 
 class Browser:
     UP = 1
@@ -10,7 +11,9 @@ class Browser:
     HOME = 7
     END = 8
 
-    def __init__(self, scr_top_row, scr_left_col, scr_bot_row, scr_right_col):
+    def __init__(self, scr_top_row, scr_left_col, scr_bot_row, scr_right_col,\
+            db_name):
+        self._db = db.DBConnection(db_name)
         self._cur_line = 0
         self._VIS_RNG = (scr_bot_row - scr_top_row,\
                 scr_right_col - scr_left_col)

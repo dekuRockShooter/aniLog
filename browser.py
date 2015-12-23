@@ -90,6 +90,11 @@ class Browser:
                 self._scr_top_row, self._scr_left_col,\
                 self._scr_bot_row, self._scr_right_col)
 
+    def get_cur_str(self):
+        cur_coord = self._col_coords[self._cur_col]
+        width = cur_coord.end - cur_coord.beg + 1
+        return self._pad.instr(self._cur_row, self._cur_col, width)
+
     def scroll(self, direction, quantifier=1):
         prev_line = self._pad.instr(self._cur_row, 0)
         prev_row = self._cur_row

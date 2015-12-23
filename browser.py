@@ -1,6 +1,12 @@
 import curses
 import shared
 
+class Coordinates:
+    def __init__(self, beg=0, end=0, sep=0):
+        self.beg = beg
+        self.end = end
+        self.sep = sep
+
 class Browser:
     UP = 1
     DOWN = 2
@@ -12,7 +18,7 @@ class Browser:
     END = 8
 
     def __init__(self, scr_top_row, scr_left_col, scr_bot_row, scr_right_col,\
-            db_name, table):
+            col_widths, db_name, table):
         try:
             self._db = shared.DBRegistry.get_db(db_name)
         except KeyError:
@@ -41,16 +47,38 @@ class Browser:
 
         self._cur_row = 0
         self._cur_col = 0
+        self._cursor_col = 0
+        self._col_coords = []
+        self._reset_col_coords(col_widths)
 
         curses.initscr()
         self._pad = curses.newpad(self._END_ROW, self._END_COL) # height, width
         self._pad.keypad(1)
         self._pad.leaveok(0)
 
+    def _reset_col_coords(self, col_widths):
+        assert(len(col_widths) > 0)
+        self._col_coords.clear()
+        self._col_coords.append(Coordinates(0, col_widths[0]-1, col_widths[0]))
+        for width in col_widths[1:]:
+            prev_sep = self._col_coords[-1].sep
+            if width == 0:
+                self._col_coords.append(None)
+                continue
+            beg = prev_sep + 1
+            end = prev_sep + width
+            sep = prev_sep + width + 1
+            self._col_coords.append(Coordinates(beg, end, sep))
+
     def create(self):
         _cur_row = 0
         for row in self._db.select_all_from(self._table):
-            self._pad.addstr(_cur_row, 0, str(row))
+            for coord, col_val in zip(self._col_coords, row):
+                try:
+                    col_str = str(col_val)[: coord.end - coord.beg + 1].ljust(0)
+                except IndexError:
+                    col_str = str(col_val).ljust()
+                self._pad.addstr(_cur_row, coord.beg, col_str)
             _cur_row = _cur_row + 1
         self.redraw()
 

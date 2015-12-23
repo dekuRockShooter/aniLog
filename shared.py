@@ -16,14 +16,14 @@ class BrowserFactory:
         BrowserFactory._cur_browser = BrowserFactory._browser_map[idx]
 
     @staticmethod
-    def create(scr_top_row, scr_left_col,\
-            scr_bot_row, scr_right_col, db_name, table):
+    def create(scr_top_row, scr_left_col, scr_bot_row, scr_right_col,\
+            col_widths, db_name, table):
         name = '{}.{}'.format(db_name, table)
         if name in BrowserFactory._browser_map:
             return
         BrowserFactory._browser_map[name] =\
                 browser.Browser(scr_top_row, scr_left_col, scr_bot_row,\
-                scr_right_col, db_name, table)
+                scr_right_col, col_widths,  db_name, table)
 
     @staticmethod
     def destroy(name):

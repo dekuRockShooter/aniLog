@@ -32,6 +32,14 @@ class DBConnection:
         self._cursor.execute('select * from {}'.format(table))
         return self._cursor.fetchall()
 
+    def get_newest(self, table_name):
+        if not self._connection:
+            raise self._no_connect_err
+        s = 'select * from "{table}" where rowid=\
+                (select max(rowid) from "{table}")'.format(table=table_name)
+        self._cursor.execute(s)
+        return self._cursor.fetchone()
+
     #def select_cell(self, col_name, table, row_id):
     def execute(self, str):
         if not self._connection:
@@ -49,5 +57,6 @@ if __name__ == '__main__':
     db = DBConnection('Sybil.db')
     db.connect()
     #print(db.execute('select name from watching where rowid=82')[0])
-    print(db.execute('pragma table_info(watching)'))
+    #print(db.execute('pragma table_info(watching)'))
+    print(db.get_newest('watching'))
     db.close()

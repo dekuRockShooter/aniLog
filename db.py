@@ -39,6 +39,12 @@ class DBConnection:
         self._cursor.execute(str)
         return self._cursor.fetchall()
 
+    def commit(self):
+        if not self._connection:
+            raise self._no_connect_err
+        self._connection.commit()
+
+
 if __name__ == '__main__':
     db = DBConnection('Sybil.db')
     db.connect()

@@ -32,7 +32,16 @@ class DBConnection:
         self._cursor.execute('select * from {}'.format(table))
         return self._cursor.fetchall()
 
-#db = DBConnection('Sybil.db')
-#db.connect()
-#print(db.select_all_from('watching'))
-#db.close()
+    #def select_cell(self, col_name, table, row_id):
+    def execute(self, str):
+        if not self._connection:
+            raise self._no_connect_err
+        self._cursor.execute(str)
+        return self._cursor.fetchall()
+
+if __name__ == '__main__':
+    db = DBConnection('Sybil.db')
+    db.connect()
+    #print(db.execute('select name from watching where rowid=82')[0])
+    print(db.execute('pragma table_info(watching)'))
+    db.close()

@@ -1,4 +1,6 @@
 import curses
+import curses
+import shared
 import shared
 
 class Coordinates:
@@ -17,6 +19,7 @@ class Browser:
     HOME = 7
     END = 8
     PRIMARY_KEY = 'rowid'
+    _browser_id = 0
 
     def __init__(self, scr_top_row, scr_left_col, scr_bot_row, scr_right_col,\
             col_widths, db_name, table):
@@ -31,9 +34,10 @@ class Browser:
         self._col_names = []
         for row in self._db.execute('pragma table_info({})'.format(table)):
             self._col_names.append(row[1])
+        self._db_name = db_name
         self._table = table
         self._cur_line = 0
-        self._PRIMARY_KEY = Browser.PRIMARY_KEY
+        self.PRIMARY_KEY = Browser.PRIMARY_KEY
         self._VIS_RNG = (scr_bot_row - scr_top_row,\
                 scr_right_col - scr_left_col)
 
@@ -61,6 +65,8 @@ class Browser:
         self._pad = curses.newpad(self._END_ROW, self._END_COL) # height, width
         self._pad.keypad(1)
         self._pad.leaveok(0)
+        Browser._browser_id = Browser._browser_id + 1
+        self._id = Browser._browser_id
 
     def _reset_col_coords(self, col_widths):
         assert(len(col_widths) > 0)
@@ -89,6 +95,9 @@ class Browser:
             _cur_row = _cur_row + 1
         self.redraw()
 
+    def get_name(self):
+        return '{}.{}'.format(self._db_name,  self._table)
+
     def destroy(self):
         self._pad.keypad(0)
 
@@ -97,12 +106,28 @@ class Browser:
                 self._scr_top_row, self._scr_left_col,\
                 self._scr_bot_row, self._scr_right_col)
 
+    def update_cur_cell(self):
+        coord = self._col_coords[self._cur_col]
+        cell_value = str(self.get_cur_cell())
+        try:
+            col_str = cell_value[: coord.end - coord.beg + 1].ljust(0)
+        except IndexError:
+            col_str = cell_value.ljust(0)
+        self._pad.addstr(self._cur_row, coord.beg, col_str)
+        self.redraw()
+
     def get_cur_cell(self):
         cmd = 'select "{}" from "{}" where "{}"="{}"'.\
                 format(self._col_names[self._cur_col],\
-                self._table, self._PRIMARY_KEY,\
+                self._table, self.PRIMARY_KEY,\
                 self._row_ids[self._cur_row])
         return self._db.execute(cmd)[0][0]
+
+    def get_cur_rowid(self):
+        return self._row_ids[self._cur_row]
+
+    def get_col_name(self):
+        return self._col_names[self._cur_col]
 
     def scroll(self, direction, quantifier=1):
         prev_line = self._pad.instr(self._cur_row, 0)

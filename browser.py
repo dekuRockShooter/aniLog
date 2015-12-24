@@ -130,6 +130,17 @@ class Browser:
         self._pad.addstr(self._cur_row, coord.beg, col_str)
         self.redraw()
 
+    def update_del_entry(self):
+        row_idx = self._row_count - 1
+        self._row_ids.pop(self._cur_row)
+        for row_idx in range(self._cur_row + 1, self._row_count):
+            row = self._pad.instr(row_idx, 0)
+            self._pad.addstr(row_idx - 1, 0, row)
+        self._pad.addstr(row_idx, 0,\
+                ''.join([' ' for i in range(self._END_COL)]))
+        self._row_count = self._row_count - 1
+        self.redraw()
+
     def get_cur_cell(self):
         cmd = 'select "{}" from "{}" where "{}"="{}"'.\
                 format(self._col_names[self._cur_col],\

@@ -22,6 +22,16 @@ class ScrollUp(Command):
         cur_browser = BrowserFactory.get_cur()
         cur_browser.scroll(Browser.UP, self._quantifier)
 
+class ScrollLeft(Command):
+    def execute(self):
+        cur_browser = BrowserFactory.get_cur()
+        cur_browser.scroll(Browser.LEFT, self._quantifier)
+
+class ScrollRight(Command):
+    def execute(self):
+        cur_browser = BrowserFactory.get_cur()
+        cur_browser.scroll(Browser.RIGHT, self._quantifier)
+
 class EditCell(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
@@ -44,3 +54,15 @@ class EditCell(Command):
         cur_db.execute(s)
         cur_db.commit()
         cur_browser.update_cur_cell()
+
+class NewEntry(Command):
+    def execute(self):
+        cur_browser = BrowserFactory.get_cur()
+        browser_name = cur_browser.get_name()
+        db_name = browser_name[: browser_name.rfind('.')]
+        table_name = browser_name[browser_name.rfind('.') + 1:]
+        cur_db = DBRegistry.get_db(db_name)
+        s = 'insert into "{table}" default values'.format(table=table_name)
+        cur_db.execute(s)
+        cur_db.commit()
+        cur_browser.update_new_entry()

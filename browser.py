@@ -16,6 +16,7 @@ class Browser:
     PAGE_DOWN = 6
     HOME = 7
     END = 8
+    PRIMARY_KEY = 'rowid'
 
     def __init__(self, scr_top_row, scr_left_col, scr_bot_row, scr_right_col,\
             col_widths, db_name, table):
@@ -26,8 +27,13 @@ class Browser:
             self._db = shared.DBRegistry.get_db(db_name)
         finally:
             self._db.connect()
+        self._row_ids = []
+        self._col_names = []
+        for row in self._db.execute('pragma table_info({})'.format(table)):
+            self._col_names.append(row[1])
         self._table = table
         self._cur_line = 0
+        self._PRIMARY_KEY = Browser.PRIMARY_KEY
         self._VIS_RNG = (scr_bot_row - scr_top_row,\
                 scr_right_col - scr_left_col)
 
@@ -73,6 +79,7 @@ class Browser:
     def create(self):
         _cur_row = 0
         for row in self._db.select_all_from(self._table):
+            self._row_ids.append(row[0]) # the row id
             for coord, col_val in zip(self._col_coords, row):
                 try:
                     col_str = str(col_val)[: coord.end - coord.beg + 1].ljust(0)
@@ -90,10 +97,12 @@ class Browser:
                 self._scr_top_row, self._scr_left_col,\
                 self._scr_bot_row, self._scr_right_col)
 
-    def get_cur_str(self):
-        cur_coord = self._col_coords[self._cur_col]
-        width = cur_coord.end - cur_coord.beg + 1
-        return self._pad.instr(self._cur_row, self._cur_col, width)
+    def get_cur_cell(self):
+        cmd = 'select "{}" from "{}" where "{}"="{}"'.\
+                format(self._col_names[self._cur_col],\
+                self._table, self._PRIMARY_KEY,\
+                self._row_ids[self._cur_row])
+        return self._db.execute(cmd)[0][0]
 
     def scroll(self, direction, quantifier=1):
         prev_line = self._pad.instr(self._cur_row, 0)

@@ -41,6 +41,7 @@ class Browser:
         self._VIS_RNG = (scr_bot_row - scr_top_row,\
                 scr_right_col - scr_left_col)
 
+        self._row_count = 0
         self._scr_top_row = scr_top_row
         self._scr_bot_row = scr_bot_row
         self._scr_left_col = scr_left_col
@@ -56,7 +57,7 @@ class Browser:
         self._right_col = self._VIS_RNG[1]
 
         self._cur_row = 0
-        self._cur_col = 0
+        self._cur_col = 0 # zero based
         self._cursor_col = 0
         self._col_coords = []
         self._reset_col_coords(col_widths)
@@ -83,7 +84,7 @@ class Browser:
             self._col_coords.append(Coordinates(beg, end, sep))
 
     def create(self):
-        _cur_row = 0
+        self._row_count = 0
         for row in self._db.select_all_from(self._table):
             self._row_ids.append(row[0]) # the row id
             for coord, col_val in zip(self._col_coords, row):
@@ -91,12 +92,12 @@ class Browser:
                     col_str = str(col_val)[: coord.end - coord.beg + 1].ljust(0)
                 except IndexError:
                     col_str = str(col_val).ljust()
-                self._pad.addstr(_cur_row, coord.beg, col_str)
-            _cur_row = _cur_row + 1
+                self._pad.addstr(self._row_count, coord.beg, col_str)
+            self._row_count = self._row_count + 1
         self.redraw()
 
     def get_name(self):
-        return '{}.{}'.format(self._db_name,  self._table)
+        return '{}.{}'.format(self._db_name, self._table)
 
     def destroy(self):
         self._pad.keypad(0)
@@ -105,6 +106,19 @@ class Browser:
         self._pad.refresh(self._top_row, self._left_col,\
                 self._scr_top_row, self._scr_left_col,\
                 self._scr_bot_row, self._scr_right_col)
+
+    def update_new_entry(self):
+        row = self._db.get_newest(self._table)
+        # this is the same as the inner loop of create()
+        self._row_ids.append(row[0]) # the row id
+        for coord, col_val in zip(self._col_coords, row):
+            try:
+                col_str = str(col_val)[: coord.end - coord.beg + 1].ljust(0)
+            except IndexError:
+                col_str = str(col_val).ljust()
+            self._pad.addstr(self._row_count, coord.beg, col_str)
+        self._row_count = self._row_count + 1
+        self.redraw()
 
     def update_cur_cell(self):
         coord = self._col_coords[self._cur_col]
@@ -130,8 +144,11 @@ class Browser:
         return self._col_names[self._cur_col]
 
     def scroll(self, direction, quantifier=1):
-        prev_line = self._pad.instr(self._cur_row, 0)
+        prev_cell_coords = self._col_coords[self._cur_col]
+        prev_cell_val = self._pad.instr(self._cur_row, prev_cell_coords.beg,\
+                prev_cell_coords.sep - prev_cell_coords.beg)
         prev_row = self._cur_row
+        prev_col = self._cur_col
         if direction == Browser.DOWN or direction == Browser.UP:
             if direction == Browser.UP:
                 self._cur_row = self._cur_row - quantifier
@@ -150,8 +167,21 @@ class Browser:
                 self._top_row = self._cur_row
                 self._bot_row = self._top_row + self._VIS_RNG[0]
 
+        elif direction == Browser.LEFT or direction == Browser.RIGHT:
+            if direction == Browser.LEFT:
+                self._cur_col = self._cur_col - quantifier
+            else:
+                self._cur_col = self._cur_col + quantifier
+            if self._cur_col < 0:
+                self._cur_col = 0
+            elif self._cur_col >= len(self._col_names):
+                self._cur_col = len(self._col_names) - 1
+
         # highlight next line and scroll down
-        self._pad.addstr(prev_row, 0, prev_line)
-        cur_line = self._pad.instr(self._cur_row, 0)
-        self._pad.addstr(self._cur_row, 0, cur_line, curses.A_STANDOUT)
+        cur_cell_coords = self._col_coords[self._cur_col]
+        self._pad.addstr(prev_row, prev_cell_coords.beg, prev_cell_val)
+        cur_cell_val = self._pad.instr(self._cur_row, cur_cell_coords.beg,\
+                cur_cell_coords.sep - cur_cell_coords.beg)
+        self._pad.addstr(self._cur_row, cur_cell_coords.beg, cur_cell_val,\
+                curses.A_STANDOUT)
         self.redraw()

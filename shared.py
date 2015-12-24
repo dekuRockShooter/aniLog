@@ -1,6 +1,6 @@
 import db
 import browser
-#from browser import Browser
+import status_bar
 
 class BrowserFactory:
     _browser_map = {}
@@ -36,6 +36,28 @@ class BrowserFactory:
         for name, browser in BrowserFactory._browser_map.items():
             browser.destroy()
         BrowserFactory._browser_map.clear()
+
+class StatusBarRegistry:
+    _status_bar = None
+
+    @staticmethod
+    def get():
+        return StatusBarRegistry._status_bar
+
+    @staticmethod
+    def create(scr_top_row, scr_right_col):
+        if StatusBarRegistry._status_bar:
+            return
+        StatusBarRegistry._status_bar =\
+                status_bar.StatusBar(scr_top_row, scr_right_col)
+
+    @staticmethod
+    def destroy():
+        StatusBarRegistry._status_bar.destroy()
+
+    @staticmethod
+    def destroy_all():
+        StatusBarRegistry.destroy()
 
 class DBRegistry:
     _db_map = {}

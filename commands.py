@@ -66,3 +66,18 @@ class NewEntry(Command):
         cur_db.execute(s)
         cur_db.commit()
         cur_browser.update_new_entry()
+
+class DeleteEntry(Command):
+    def execute(self):
+        cur_browser = BrowserFactory.get_cur()
+        browser_name = cur_browser.get_name()
+        db_name = browser_name[: browser_name.rfind('.')]
+        table_name = browser_name[browser_name.rfind('.') + 1:]
+        cur_db = DBRegistry.get_db(db_name)
+        s = 'delete from "{table}" where "{prim_key}"="{val}"'.format(\
+                table=table_name,
+                prim_key=cur_browser.PRIMARY_KEY,
+                val=cur_browser.get_cur_rowid())
+        cur_db.execute(s)
+        cur_db.commit()
+        cur_browser.update_del_entry()

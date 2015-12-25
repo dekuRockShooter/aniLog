@@ -1,6 +1,6 @@
 import curses
 from browser import Browser
-from shared import BrowserFactory, StatusBarRegistry, DBRegistry
+from shared import BrowserFactory, StatusBarRegistry, DBRegistry, CopyBuffer
 
 class Command:
     def __init__(self, name, desc, quantifier=1, **kwargs):
@@ -81,3 +81,37 @@ class DeleteEntry(Command):
         cur_db.execute(s)
         cur_db.commit()
         cur_browser.update_del_entry()
+
+class CopyEntry(Command):
+    def execute(self):
+        cur_browser = BrowserFactory.get_cur()
+        browser_name = cur_browser.get_name()
+        db_name = browser_name[: browser_name.rfind('.')]
+        table_name = browser_name[browser_name.rfind('.') + 1:]
+        cur_db = DBRegistry.get_db(db_name)
+        s = 'select * from "{table}" where "{prim_key}"="{val}"'.format(\
+                table=table_name,
+                prim_key=cur_browser.PRIMARY_KEY,
+                val=cur_browser.get_cur_rowid())
+        row =  list(cur_db.execute(s)[0])
+        row[0] = 'null' # for autoincrementing the rowid
+        for idx, val in enumerate(row[1:], 1):
+            val = str(val)
+            if val.startswith('"') and val.endswith('"'):
+                continue
+            row[idx] = '{}{}{}'.format('"', val, '"')
+        CopyBuffer.set(CopyBuffer.DEFAULT_KEY, tuple(row))
+
+class PasteEntry(Command):
+    def execute(self):
+        cur_browser = BrowserFactory.get_cur()
+        browser_name = cur_browser.get_name()
+        db_name = browser_name[: browser_name.rfind('.')]
+        table_name = browser_name[browser_name.rfind('.') + 1:]
+        cur_db = DBRegistry.get_db(db_name)
+        row = ','.join(CopyBuffer.get(CopyBuffer.DEFAULT_KEY))
+        s = 'insert into "{table}" values ({val})'.format(\
+                table=table_name,
+                val=str(row))
+        cur_db.execute(s)
+        cur_browser.update_new_entry()

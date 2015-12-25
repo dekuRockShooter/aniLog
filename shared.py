@@ -39,6 +39,10 @@ class BrowserFactory:
         return BrowserFactory._cur_idx
 
     @staticmethod
+    def get_count():
+        return len(BrowserFactory._browser_indexes)
+
+    @staticmethod
     def set_cur(idx):
         """Raises an IndexError"""
         BrowserFactory._cur_browser = BrowserFactory._browser_indexes[idx]
@@ -80,10 +84,10 @@ class StatusBarRegistry:
 
     @staticmethod
     def create(scr_top_row, scr_right_col):
-        if StatusBarRegistry._status_bar:
-            return
-        StatusBarRegistry._status_bar =\
+        if not StatusBarRegistry._status_bar:
+            StatusBarRegistry._status_bar =\
                 status_bar.StatusBar(scr_top_row, scr_right_col)
+        return StatusBarRegistry._status_bar
 
     @staticmethod
     def destroy():

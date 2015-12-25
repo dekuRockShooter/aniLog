@@ -98,7 +98,7 @@ class Browser:
                     col_str = str(col_val).ljust()
                 self._pad.addstr(self._row_count, coord.beg, col_str)
             self._row_count = self._row_count + 1
-        self._pad.move(self._top_row, self._left_col)
+        #self._pad.move(self._top_row, self._left_col)
 
     def get_name(self):
         return '{}.{}'.format(self._db_name, self._table)

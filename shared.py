@@ -41,7 +41,6 @@ class BrowserFactory:
     @staticmethod
     def set_cur(idx):
         """Raises an IndexError"""
-        #BrowserFactory._cur_browser = BrowserFactory._browser_map[idx]
         BrowserFactory._cur_browser = BrowserFactory._browser_indexes[idx]
         BrowserFactory._cur_idx = idx
 
@@ -50,13 +49,14 @@ class BrowserFactory:
             col_widths, db_name, table):
         name = '{}.{}'.format(db_name, table)
         if name in BrowserFactory._browser_map:
-            return
+            return BrowserFactory._browser_map[name]
         new_browser = browser.Browser(scr_top_row, scr_left_col, scr_bot_row,\
                 scr_right_col, col_widths,  db_name, table)
         BrowserFactory._browser_map[name] = new_browser
         BrowserFactory._cur_idx = BrowserFactory._cur_idx + 1
         BrowserFactory._browser_indexes.insert(BrowserFactory._cur_idx,\
                 new_browser)
+        return new_browser
 
     @staticmethod
     def destroy(name):

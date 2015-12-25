@@ -78,13 +78,18 @@ class Browser:
             sep = prev_sep + width + 1
             self._col_coords.append(Coordinates(beg, end, sep))
 
-    def create(self):
+    def create(self, query=''):
         curses.initscr()
         self._pad = curses.newpad(self._END_ROW, self._END_COL) # height, width
         self._pad.keypad(1)
         self._pad.leaveok(0)
         self._row_count = 0
-        for row in self._db.select_all_from(self._table):
+        self._row_ids.clear()
+        if query:
+            rows = self._db.execute(query)
+        else:
+            rows = self._db.select_all_from(self._table)
+        for row in rows:
             self._row_ids.append(row[0]) # the row id
             for coord, col_val in zip(self._col_coords, row):
                 try:
@@ -105,6 +110,9 @@ class Browser:
         self._pad.refresh(self._top_row, self._left_col,\
                 self._scr_top_row, self._scr_left_col,\
                 self._scr_bot_row, self._scr_right_col)
+
+    def update_query(self, query):
+        self.create(query)
 
     def update_new_entry(self):
         row = self._db.get_newest(self._table)

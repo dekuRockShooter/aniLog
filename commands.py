@@ -71,8 +71,8 @@ class NewEntry(Command):
 class DeleteEntry(Command):
     def execute(self):
         cur_status_bar = StatusBarRegistry.get()
-        cur_status_bar.set_str('Really delete? (y\\n)')
-        reply = cur_status_bar.redraw()[-1][-1]
+        cur_status_bar.set_str('Confirm deletion (y//n): ')
+        reply = cur_status_bar.redraw()[-1]
         if reply not in ('y', 'Y'):
             return
         cur_browser = BrowserFactory.get_cur()
@@ -136,3 +136,20 @@ class PreviousBrowser(Command):
         BrowserFactory.set_cur(cur_idx - 1)
         UIRegistry.get().on_browser_switch()
         StatusBarRegistry.get().on_browser_switch()
+
+class Filter(Command):
+    def execute(self):
+        cur_status_bar = StatusBarRegistry.get()
+        cur_status_bar.set_str(':filter ')
+        search_term = ' '.join(cur_status_bar.redraw()[1:])
+        cur_browser = BrowserFactory.get_cur()
+        col_name = cur_browser.get_col_name()
+        browser_name = cur_browser.get_name()
+        db_name = browser_name[: browser_name.rfind('.')]
+        table_name = browser_name[browser_name.rfind('.') + 1:]
+        cur_db = DBRegistry.get_db(db_name)
+        s = 'select * from "{table}" where "{col_name}" like \'%{val}%\''.format(\
+                table=table_name,
+                col_name=col_name,
+                val=search_term)
+        cur_browser.update_query(s)

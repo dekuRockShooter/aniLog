@@ -123,9 +123,11 @@ class NextBrowser(Command):
         cur_idx = BrowserFactory.get_cur_idx()
         BrowserFactory.set_cur(cur_idx + 1)
         UIRegistry.get().on_browser_switch()
+        StatusBarRegistry.get().on_browser_switch()
 
 class PreviousBrowser(Command):
     def execute(self):
         cur_idx = BrowserFactory.get_cur_idx()
         BrowserFactory.set_cur(cur_idx - 1)
         UIRegistry.get().on_browser_switch()
+        StatusBarRegistry.get().on_browser_switch()

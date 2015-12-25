@@ -153,3 +153,24 @@ class Filter(Command):
                 col_name=col_name,
                 val=search_term)
         cur_browser.update_query(s)
+
+class Sort(Command):
+    ASC='asc'
+    DES='desc'
+
+    def __init__(self, name, desc, quantifier=1, direction=None, **kwargs):
+        super(Sort, self).__init__(name, desc, quantifier, **kwargs)
+        self._direction = direction or Sort.ASC
+
+    def execute(self):
+        cur_browser = BrowserFactory.get_cur()
+        col_name = cur_browser.get_col_name()
+        browser_name = cur_browser.get_name()
+        db_name = browser_name[: browser_name.rfind('.')]
+        table_name = browser_name[browser_name.rfind('.') + 1:]
+        cur_db = DBRegistry.get_db(db_name)
+        s = 'select * from "{table}" order by "{col_name}" {dir}'.format(\
+                table=table_name,
+                col_name=col_name,
+                dir=self._direction)
+        cur_browser.update_query(s)

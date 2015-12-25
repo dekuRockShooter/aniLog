@@ -37,6 +37,10 @@ class UI:
                 cmd.execute()
 
     def on_browser_switch(self):
+        """ Switch to the new browser and display it.
+
+        Assumes that the current browser has already had its create method
+        called.
+        """
         self._cur_browser = BrowserFactory.get_cur()
-        self._cur_browser.create()
         self._cur_browser.redraw()

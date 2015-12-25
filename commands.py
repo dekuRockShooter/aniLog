@@ -70,6 +70,11 @@ class NewEntry(Command):
 
 class DeleteEntry(Command):
     def execute(self):
+        cur_status_bar = StatusBarRegistry.get()
+        cur_status_bar.set_str('Really delete? (y\\n)')
+        reply = cur_status_bar.redraw()[-1][-1]
+        if reply not in ('y', 'Y'):
+            return
         cur_browser = BrowserFactory.get_cur()
         browser_name = cur_browser.get_name()
         db_name = browser_name[: browser_name.rfind('.')]

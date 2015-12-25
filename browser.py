@@ -49,7 +49,7 @@ class Browser:
         self._END_ROW = 100
         self._BEG_ROW = 0
         self._bot_row = 0
-        self._top_row = self._VIS_RNG[0]
+        self._top_row = self._VIS_RNG[0] # TODO: this should be bot_row
 
         self._END_COL = 100
         self._BEG_COL = 0
@@ -62,12 +62,7 @@ class Browser:
         self._col_coords = []
         self._reset_col_coords(col_widths)
 
-        curses.initscr()
-        self._pad = curses.newpad(self._END_ROW, self._END_COL) # height, width
-        self._pad.keypad(1)
-        self._pad.leaveok(0)
-        Browser._browser_id = Browser._browser_id + 1
-        self._id = Browser._browser_id
+        self._pad = None
 
     def _reset_col_coords(self, col_widths):
         assert(len(col_widths) > 0)
@@ -84,6 +79,10 @@ class Browser:
             self._col_coords.append(Coordinates(beg, end, sep))
 
     def create(self):
+        curses.initscr()
+        self._pad = curses.newpad(self._END_ROW, self._END_COL) # height, width
+        self._pad.keypad(1)
+        self._pad.leaveok(0)
         self._row_count = 0
         for row in self._db.select_all_from(self._table):
             self._row_ids.append(row[0]) # the row id
@@ -94,7 +93,7 @@ class Browser:
                     col_str = str(col_val).ljust()
                 self._pad.addstr(self._row_count, coord.beg, col_str)
             self._row_count = self._row_count + 1
-        self.redraw()
+        self._pad.move(self._top_row, self._left_col)
 
     def get_name(self):
         return '{}.{}'.format(self._db_name, self._table)

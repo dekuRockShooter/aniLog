@@ -35,3 +35,8 @@ class UI:
             cmd = self._key_map.get_cmd(key)
             if cmd:
                 cmd.execute()
+
+    def on_browser_switch(self):
+        self._cur_browser = BrowserFactory.get_cur()
+        self._cur_browser.create()
+        self._cur_browser.redraw()

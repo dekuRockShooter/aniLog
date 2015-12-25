@@ -1,6 +1,7 @@
 import curses
 from browser import Browser
-from shared import BrowserFactory, StatusBarRegistry, DBRegistry, CopyBuffer
+from shared import BrowserFactory, StatusBarRegistry, DBRegistry, CopyBuffer,\
+        UIRegistry
 
 class Command:
     def __init__(self, name, desc, quantifier=1, **kwargs):
@@ -114,4 +115,17 @@ class PasteEntry(Command):
                 table=table_name,
                 val=str(row))
         cur_db.execute(s)
+        cur_db.commit()
         cur_browser.update_new_entry()
+
+class NextBrowser(Command):
+    def execute(self):
+        cur_idx = BrowserFactory.get_cur_idx()
+        BrowserFactory.set_cur(cur_idx + 1)
+        UIRegistry.get().on_browser_switch()
+
+class PreviousBrowser(Command):
+    def execute(self):
+        cur_idx = BrowserFactory.get_cur_idx()
+        BrowserFactory.set_cur(cur_idx - 1)
+        UIRegistry.get().on_browser_switch()

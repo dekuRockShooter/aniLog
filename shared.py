@@ -84,3 +84,16 @@ class DBRegistry:
         for db in DBRegistry._db_map.values():
             db.close()
         DBRegistry._db_map.clear()
+
+class CopyBuffer:
+    DEFAULT_KEY = '0'
+    _copy_buffer = {}
+
+    @staticmethod
+    def set(key, val):
+        CopyBuffer._copy_buffer[key] = val
+
+    @staticmethod
+    def get(key):
+        """Raises a KeyError"""
+        return CopyBuffer._copy_buffer[key]

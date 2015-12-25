@@ -126,14 +126,22 @@ class PasteEntry(Command):
 class NextBrowser(Command):
     def execute(self):
         cur_idx = BrowserFactory.get_cur_idx()
-        BrowserFactory.set_cur(cur_idx + 1)
+        try:
+            BrowserFactory.set_cur(cur_idx + 1)
+        except IndexError:
+            BrowserFactory.set_cur(0)
         UIRegistry.get().on_browser_switch()
         StatusBarRegistry.get().on_browser_switch()
 
 class PreviousBrowser(Command):
     def execute(self):
         cur_idx = BrowserFactory.get_cur_idx()
-        BrowserFactory.set_cur(cur_idx - 1)
+        try:
+            if cur_idx == 0:
+                raise IndexError
+            BrowserFactory.set_cur(cur_idx - 1)
+        except IndexError:
+            BrowserFactory.set_cur(BrowserFactory.get_count() - 1)
         UIRegistry.get().on_browser_switch()
         StatusBarRegistry.get().on_browser_switch()
 

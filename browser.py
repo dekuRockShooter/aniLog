@@ -98,9 +98,6 @@ class Browser:
                         col_width)
             self._row_count = self._row_count + 1
 
-    def get_name(self):
-        return '{}.{}'.format(self._db_name, self._table)
-
     def destroy(self):
         self._pad.keypad(0)
 
@@ -131,23 +128,50 @@ class Browser:
         self.redraw()
 
     def update_del_entry(self):
-        """Redraw the screen without the current row."""
+        """Redraw the screen without the current row.
+
+            This method should be called whenever an entry has been deleted
+            in the browser's table.
+        """
         self._row_ids.pop(self._cur_row)
         self._pad.deleteln()
         self._row_count = self._row_count - 1
         self.redraw()
 
     def get_cur_cell(self):
-        cmd = 'select "{}" from "{}" where "{}"="{}"'.\
-                format(self._col_names[self._cur_col],\
-                self._table, self.PRIMARY_KEY,\
-                self._row_ids[self._cur_row])
+        """Return the value of the current cell.
+
+            The current cell's value is queried from the database and returned
+            as the datatype that it is stored as in the database.
+        """
+        cmd = 'select "{col_name}" from "{table}" where "{prim_key}"="{key}"'.\
+                format(col_name=self._col_names[self._cur_col],\
+                table=self._table,\
+                prim_key=self.PRIMARY_KEY,\
+                key=self._row_ids[self._cur_row])
         return self._db.execute(cmd)[0][0]
 
-    def get_cur_rowid(self):
+    def get_name(self):
+        """Return the name of the browser.
+
+            The name of the browser is {db name}.{table name}.
+        """
+        return '{}.{}'.format(self._db_name, self._table)
+
+    def get_table_name(self):
+        """Return the name of the database table used by the browser."""
+        return self._table
+
+    def get_db_name(self):
+        """Return the name of the database used by the browser."""
+        return self._db_name
+
+    def get_prim_key(self):
+        """Return the primary key value of the current cell."""
         return self._row_ids[self._cur_row]
 
     def get_col_name(self):
+        """Return the column name of the current cell."""
         return self._col_names[self._cur_col]
 
     def scroll(self, direction, quantifier=1):

@@ -21,8 +21,8 @@ class Browser:
     PRIMARY_KEY = 'rowid'
     _browser_id = 0
 
-    def __init__(self, scr_top_row, scr_left_col, scr_bot_row, scr_right_col,\
-            col_widths, db_name, table):
+    def __init__(self, upper_left_coords, bot_right_coords, row_count,\
+            col_count, col_widths, db_name, table):
         try:
             self._db = shared.DBRegistry.get_db(db_name)
         except KeyError:
@@ -38,20 +38,16 @@ class Browser:
         self._table = table
         self._cur_line = 0
         self.PRIMARY_KEY = Browser.PRIMARY_KEY
-        self._VIS_RNG = (scr_bot_row - scr_top_row,\
-                scr_right_col - scr_left_col)
-
+        self._VIS_RNG = (bot_right_coords[0] - upper_left_coords[0],\
+                bot_right_coords[1] - upper_left_coords[1])
         self._row_count = 0
-        self._scr_top_row = scr_top_row
-        self._scr_bot_row = scr_bot_row
-        self._scr_left_col = scr_left_col
-        self._scr_right_col = scr_right_col
-        self._END_ROW = 100
+        self._SCR_COORDS = [upper_left_coords, bot_right_coords]
+        self._END_ROW = row_count
         self._BEG_ROW = 0
         self._bot_row = 0
         self._top_row = self._VIS_RNG[0] # TODO: this should be bot_row
 
-        self._END_COL = 100
+        self._END_COL = col_count
         self._BEG_COL = 0
         self._left_col = 0
         self._right_col = self._VIS_RNG[1]
@@ -108,8 +104,7 @@ class Browser:
 
     def redraw(self):
         self._pad.refresh(self._top_row, self._left_col,\
-                self._scr_top_row, self._scr_left_col,\
-                self._scr_bot_row, self._scr_right_col)
+                *self._SCR_COORDS[0], *self._SCR_COORDS[1])
 
     def update_query(self, query):
         self.create(query)

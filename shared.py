@@ -49,13 +49,13 @@ class BrowserFactory:
         BrowserFactory._cur_idx = idx
 
     @staticmethod
-    def create(scr_top_row, scr_left_col, scr_bot_row, scr_right_col,\
-            col_widths, db_name, table):
+    def create(upper_left_coords, bot_right_coords, row_count,\
+            col_count, col_widths, db_name, table):
         name = '{}.{}'.format(db_name, table)
         if name in BrowserFactory._browser_map:
             return BrowserFactory._browser_map[name]
-        new_browser = browser.Browser(scr_top_row, scr_left_col, scr_bot_row,\
-                scr_right_col, col_widths,  db_name, table)
+        new_browser = browser.Browser(upper_left_coords, bot_right_coords,\
+                row_count, col_count, col_widths, db_name, table)
         BrowserFactory._browser_map[name] = new_browser
         BrowserFactory._cur_idx = BrowserFactory._cur_idx + 1
         BrowserFactory._browser_indexes.insert(BrowserFactory._cur_idx,\

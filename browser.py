@@ -133,11 +133,7 @@ class Browser:
         """Redraw the screen without the current row."""
         row_idx = self._row_count - 1
         self._row_ids.pop(self._cur_row)
-        for row_idx in range(self._cur_row + 1, self._row_count):
-            row = self._pad.instr(row_idx, 0)
-            self._pad.addstr(row_idx - 1, 0, row)
-        self._pad.addstr(row_idx, 0,\
-                ''.join([' ' for i in range(self._END_COL)]))
+        self._pad.deleteln()
         self._row_count = self._row_count - 1
         self.redraw()
 

@@ -74,6 +74,8 @@ class Browser:
             sep = prev_sep + width + 1
             self._col_coords.append(Coordinates(beg, end, sep))
 
+    # TODO: save the query so that the same entries will be shown after a
+    # resize.
     def create(self, query=''):
         curses.initscr()
         self._pad = curses.newpad(self._END_ROW, self._END_COL) # height, width
@@ -85,16 +87,16 @@ class Browser:
             rows = self._db.execute(query)
         else:
             rows = self._db.select_all_from(self._table)
+        self._populate_browser(rows)
+
+    def _populate_browser(self, rows):
         for row in rows:
             self._row_ids.append(row[0]) # the row id
             for coord, col_val in zip(self._col_coords, row):
-                try:
-                    col_str = str(col_val)[: coord.end - coord.beg + 1].ljust(0)
-                except IndexError:
-                    col_str = str(col_val).ljust()
-                self._pad.addstr(self._row_count, coord.beg, col_str)
+                col_width = coord.end - coord.beg + 1
+                self._pad.addnstr(self._row_count, coord.beg, str(col_val),\
+                        col_width)
             self._row_count = self._row_count + 1
-        #self._pad.move(self._top_row, self._left_col)
 
     def get_name(self):
         return '{}.{}'.format(self._db_name, self._table)
@@ -110,32 +112,25 @@ class Browser:
         self.create(query)
 
     def update_new_entry(self):
-        row = self._db.get_newest(self._table)
-        # this is the same as the inner loop of create()
-        self._row_ids.append(row[0]) # the row id
-        for coord, col_val in zip(self._col_coords, row):
-            try:
-                col_str = str(col_val)[: coord.end - coord.beg + 1].ljust(0)
-            except IndexError:
-                col_str = str(col_val).ljust(0)
-            self._pad.addstr(self._row_count, coord.beg, col_str)
-        self._row_count = self._row_count + 1
+        row = [self._db.get_newest(self._table)]
+        if self._row_count == self._END_ROW:
+            self._END_ROW = 2 * self._END_ROW
+            self.create()
+        else:
+            self._populate_browser(row)
         self.redraw()
 
     def update_cur_cell(self):
         coord = self._col_coords[self._cur_col]
         cell_value = str(self.get_cur_cell())
-        width = coord.end - coord.beg + 1
-        col_str = ''.join([' ' for x in range(width)]) # create a blank line
-        self._pad.addstr(self._cur_row, coord.beg, col_str)
-        try:
-            col_str = cell_value[: width].ljust(0)
-        except IndexError:
-            col_str = cell_value.ljust(0)
-        self._pad.addstr(self._cur_row, coord.beg, col_str)
+        col_width = coord.end - coord.beg + 1
+        blank_col = ''.join([' ' for x in range(col_width)]) # create a blank line
+        self._pad.addstr(self._cur_row, coord.beg, blank_col)
+        self._pad.addnstr(self._cur_row, coord.beg, cell_value, col_width)
         self.redraw()
 
     def update_del_entry(self):
+        """Redraw the screen without the current row."""
         row_idx = self._row_count - 1
         self._row_ids.pop(self._cur_row)
         for row_idx in range(self._cur_row + 1, self._row_count):

@@ -63,11 +63,20 @@ class BrowserFactory:
         return new_browser
 
     @staticmethod
-    def destroy(name):
+    def destroy(name='', idx=None):
         """Raises a KeyError"""
+        if idx:
+            name = BrowserFactory,_browser_indexes[idx].get_name()
+        elif not name:
+            name = BrowserFactory,_browser_indexes[\
+                    BrowserFactory._cur_idx].get_name()
         BrowserFactory,_browser_map[name].destroy()
         BrowserFactory._browser_map.pop(name)
         BrowserFactory._browser_indexes.pop(BrowserFactory._cur_idx)
+        if BrowserFactory._cur_idx >= len(BrowserFactory._browser_indexes):
+            BrowserFactory._cur_idx = BrowserFactory._cur_idx - 1
+        elif BrowserFactory._cur_idx < 0:
+            BrowserFactory._cur_idx = -1
 
     @staticmethod
     def destroy_all():

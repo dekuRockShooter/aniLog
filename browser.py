@@ -115,23 +115,23 @@ class Browser:
         row = [self._db.get_newest(self._table)]
         if self._row_count == self._END_ROW:
             self._END_ROW = 2 * self._END_ROW
-            self.create()
-        else:
-            self._populate_browser(row)
+            self._pad.resize(self._END_ROW, self._END_COL)
+            #self.create()
+        #else:
+        self._populate_browser(row)
         self.redraw()
 
     def update_cur_cell(self):
         coord = self._col_coords[self._cur_col]
         cell_value = str(self.get_cur_cell())
         col_width = coord.end - coord.beg + 1
-        blank_col = ''.join([' ' for x in range(col_width)]) # create a blank line
+        blank_col = ''.join([' ' for x in range(col_width)]) # a blank column
         self._pad.addstr(self._cur_row, coord.beg, blank_col)
         self._pad.addnstr(self._cur_row, coord.beg, cell_value, col_width)
         self.redraw()
 
     def update_del_entry(self):
         """Redraw the screen without the current row."""
-        row_idx = self._row_count - 1
         self._row_ids.pop(self._cur_row)
         self._pad.deleteln()
         self._row_count = self._row_count - 1

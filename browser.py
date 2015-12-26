@@ -183,6 +183,12 @@ class Browser:
                 self._cur_col = 0
             elif self._cur_col >= len(self._col_names):
                 self._cur_col = len(self._col_names) - 1
+            if self._col_coords[self._cur_col].sep > self._right_col:
+                self._right_col = self._col_coords[self._cur_col].sep
+                self._left_col = self._right_col - self._VIS_RNG[1]
+            elif self._col_coords[self._cur_col].beg < self._left_col:
+                self._left_col = self._col_coords[self._cur_col].beg
+                self._right_col = self._left_col + self._VIS_RNG[1]
 
         # highlight next line and scroll down
         cur_cell_coords = self._col_coords[self._cur_col]

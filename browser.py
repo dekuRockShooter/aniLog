@@ -122,7 +122,7 @@ class Browser:
             try:
                 col_str = str(col_val)[: coord.end - coord.beg + 1].ljust(0)
             except IndexError:
-                col_str = str(col_val).ljust()
+                col_str = str(col_val).ljust(0)
             self._pad.addstr(self._row_count, coord.beg, col_str)
         self._row_count = self._row_count + 1
         self.redraw()
@@ -130,8 +130,11 @@ class Browser:
     def update_cur_cell(self):
         coord = self._col_coords[self._cur_col]
         cell_value = str(self.get_cur_cell())
+        width = coord.end - coord.beg + 1
+        col_str = ''.join([' ' for x in range(width)]) # create a blank line
+        self._pad.addstr(self._cur_row, coord.beg, col_str)
         try:
-            col_str = cell_value[: coord.end - coord.beg + 1].ljust(0)
+            col_str = cell_value[: width].ljust(0)
         except IndexError:
             col_str = cell_value.ljust(0)
         self._pad.addstr(self._cur_row, coord.beg, col_str)

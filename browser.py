@@ -10,6 +10,55 @@ class Coordinates:
         self.sep = sep
 
 class Browser:
+    """A widget that allows interaction with a database table.
+
+        Class variables:
+            UP, DOWN, LEFT, RIGHT, PAGE_UP, PAGE_DOWN, HOME, END: Constants
+                that specify how to scroll.
+            PRIMARY_KEY: A tuple of column names that act as the table's
+                primary keys.
+
+        Instance variables:
+            PRIMARY_KEY: A tuple of column names that act as the table's
+                primary keys.
+            _SCR_COORDS: The coordinates of the screen in which the browser is
+                contained. _SCR_COORDS[0] are the coordinates of the upper left
+                corner of the browser. _SCR_COORDS[1] are the coordinates of the
+                lower right corner of the browser.
+            _VIS_RNG: The dimensions of the visible pad area. _VIS_RNG[0] is
+                the number of rows that are visible. _VIS_RNG[1] is the number
+                if columns that are visible.
+            _END_ROW: The last row of the pad (the number of rows that it can
+                hold).
+            _BEG_ROW: The first row of the pad.
+            _END_COL: The last column of the pad (the number of characters that
+                it can hold).
+            _BEG_COL: The first column of the pad.
+            _db: The connection to the database.
+            _db_name: The name of the database.
+            _table_name: The name of the database table that the browser
+                displays.
+            _row_ids: A list of tuples. The k'th element is a tuple that
+                contains the primary keys of the k'th row in the pad.
+            _col_names: A list of the names in the database table.
+            _row_count: The number of non-empty rows in the pad (the number of
+                database entries written to the pad). This is always in the
+                interval [0, _END_ROW]
+            _bot_row: The last row of the pad that is currently in view (the
+                row that is at _SCR_COORDS[1][0]).
+            _top_row: The first row of the pad that is currently in view (the
+                row that is at _SCR_COORDS[0][0]).
+            _left_col: The first column of the pad that is currently in view (
+                the column that is at _SCR_COORDS[0][1]).
+            _right_col: The last column of the pad that is currently in view (
+                the column that is at _SCR_COORDS[1][1]).
+            _cur_row: The currently selected row.
+            _cur_col: The currently selected column.
+            _col_coords: The coordinates that bound a column. This is a list of
+                Coordinates. The k'th element is the coordinates of the
+                k'th column.
+            _pad: The pad that displays everything.
+    """
     UP = 1
     DOWN = 2
     LEFT = 3
@@ -19,7 +68,6 @@ class Browser:
     HOME = 7
     END = 8
     PRIMARY_KEY = 'rowid'
-    _browser_id = 0
 
     def __init__(self, upper_left_coords, bot_right_coords, row_count,\
             col_count, col_widths, db_name, table):
@@ -36,7 +84,6 @@ class Browser:
             self._col_names.append(row[1])
         self._db_name = db_name
         self._table = table
-        self._cur_line = 0
         self.PRIMARY_KEY = Browser.PRIMARY_KEY
         self._VIS_RNG = (bot_right_coords[0] - upper_left_coords[0],\
                 bot_right_coords[1] - upper_left_coords[1])
@@ -54,14 +101,25 @@ class Browser:
 
         self._cur_row = 0
         self._cur_col = 0 # zero based
-        self._cursor_col = 0
         self._col_coords = []
-        self._reset_col_coords(col_widths)
+        self._set_col_coords(col_widths)
 
         self._pad = None
 
-    def _reset_col_coords(self, col_widths):
-        assert(len(col_widths) > 0)
+    def _set_col_coords(self, col_widths):
+        """Set the coordinates of all the columns.
+
+            Parameters:
+                col_widths: A sequence of numbers. The k'th element is the
+                    number of characters used by the k'th column. col_width's
+                    length must be the same as the number of columns in the
+                    table. The numbers must be positive integers.
+
+            A column is confined within the bounds coords.beg and coords.end,
+            inclusive. coords.sep is the coordinate that separates two columns.
+            For any column, end - beg = width, and beg = 1 + prev_col.sep.
+        """
+        assert(len(col_widths) == len(self._col_names))
         self._col_coords.clear()
         self._col_coords.append(Coordinates(0, col_widths[0]-1, col_widths[0]))
         for width in col_widths[1:]:
@@ -76,22 +134,54 @@ class Browser:
 
     # TODO: save the query so that the same entries will be shown after a
     # resize.
-    def create(self, query=''):
+    def create(self, rows=None):
+        """Display the given rows to an empty browser.
+
+            Parameters:
+                rows: A sequence of tuples. Each tuple represents a line. A
+                    tuple's elements represent columns in the database table.
+
+            The browser is cleared and all data is reset to reflect the empty
+            browser. curses is initialized if it has not been already. Then,
+            the rows are written to the browser. If no rows are given, then
+            all rows from the table are used.
+        """
+        self._setup_curses()
+        self._pad.clear()
+        self._row_count = 0
+        self._row_ids.clear()
+        if not rows:
+            rows = self._db.select_all_from(self._table)
+        self._populate_browser(rows)
+
+    def _setup_curses(self):
+        """Initialize the pad and its settings."""
+        if self._pad != None:
+            return
         curses.initscr()
         self._pad = curses.newpad(self._END_ROW, self._END_COL) # height, width
         self._pad.keypad(1)
         self._pad.leaveok(0)
-        self._row_count = 0
-        self._row_ids.clear()
-        if query:
-            rows = self._db.execute(query)
-        else:
-            rows = self._db.select_all_from(self._table)
-        self._populate_browser(rows)
 
     def _populate_browser(self, rows):
+        """Write lines to the pad.
+
+            Parameters:
+                rows: A sequence of tuples. Each tuple represents a line. A
+                    tuple's elements represent columns in the database table.
+
+            The rows are written to the pad starting at the first empty line
+            (which is _row_count). Before writing the lines, however, the
+            function makes sure that the pad has enough lines. If it does not,
+            then it calls resize to increase the number of rows.
+        """
+        if (self._row_count + len(rows)) > self._END_ROW:
+            self._resize(2 * (self._row_count + len(rows)))
         for row in rows:
-            self._row_ids.append(row[0]) # the row id
+            # record the primary key
+            self._row_ids.append(row[0])
+
+            # write each column with the correct width at the correct coord.
             for coord, col_val in zip(self._col_coords, row):
                 col_width = coord.end - coord.beg + 1
                 self._pad.addnstr(self._row_count, coord.beg, str(col_val),\
@@ -99,32 +189,74 @@ class Browser:
             self._row_count = self._row_count + 1
 
     def destroy(self):
+        """Deallocate the browser."""
         self._pad.keypad(0)
 
     def redraw(self):
+        """Redraw the screen to show new changes."""
         self._pad.refresh(self._top_row, self._left_col,\
                 *self._SCR_COORDS[0], *self._SCR_COORDS[1])
 
-    def update_query(self, query):
-        self.create(query)
+    def _resize(self, rows=0, cols=0):
+        """Increase the number rows and columns of the pad.
+
+            Parameters:
+                rows: The new number of rows. This must be greater than the
+                    current number.
+                cols: The new number of columns. This must be greater than the
+                    current number.
+
+            The pad is resized to hold the given number of rows and columns.
+            If no value for a row or column is given, then the respective
+            dimension is doubled. If an argument is the same as its current
+            value, then nothing is done. If an argument is less than its
+            current value, then nothing is done.
+        """
+        if rows == 0:
+            self._END_ROW = 2 * self._END_ROW
+        else:
+            self._END_ROW = rows
+        self._pad.resize(self._END_ROW, self._END_COL)
+
+    def update_query(self, rows):
+        """Redraw the screen using the given rows.
+
+            Parameters:
+                rows: A sequence of tuples. Each tuple represents a line, and
+                    the elements in a tuple represent database columns.
+
+            The browser's current contents are cleared, and the new lines
+            are displayed.
+        """
+        self.create(rows)
+        self.redraw()
 
     def update_new_entry(self):
+        """ Redraw the screen with a new entry.
+
+            This method should be called whenever a row has been inserted into
+            the browser's table. The new entry is displayed.
+        """
         row = [self._db.get_newest(self._table)]
-        if self._row_count == self._END_ROW:
-            self._END_ROW = 2 * self._END_ROW
-            self._pad.resize(self._END_ROW, self._END_COL)
-            #self.create()
-        #else:
         self._populate_browser(row)
         self.redraw()
 
     def update_cur_cell(self):
+        """Redraw the current cell's value.
+
+            This method should be called whenever a row's column has been
+            changed. The current cell's value is updated to its changed value.
+        """
         coord = self._col_coords[self._cur_col]
-        cell_value = str(self.get_cur_cell())
+        new_value = str(self.get_cur_cell())
         col_width = coord.end - coord.beg + 1
-        blank_col = ''.join([' ' for x in range(col_width)]) # a blank column
+
+        # clear the column
+        blank_col = ''.join([' ' for x in range(col_width)])
         self._pad.addstr(self._cur_row, coord.beg, blank_col)
-        self._pad.addnstr(self._cur_row, coord.beg, cell_value, col_width)
+
+        # update the column
+        self._pad.addnstr(self._cur_row, coord.beg, new_value, col_width)
         self.redraw()
 
     def update_del_entry(self):

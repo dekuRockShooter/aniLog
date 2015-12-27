@@ -114,7 +114,13 @@ class BrowserFactory:
     @staticmethod
     def create(upper_left_coords, bot_right_coords,
                col_widths, db_name, table):
-        """Create a new browser.
+        """Create and return a new browser.
+
+        Create a browser within the given screen coordinates. The
+        browser will be named db_name.table_name. The browser is then
+        returned. If a browser with the same name already exists, then
+        that one is returned. If a new browser was created, then that
+        browser is opened.
 
         Args:
             upper_left_coords (tuple): The screen coordinates at which
@@ -134,9 +140,9 @@ class BrowserFactory:
         new_browser = browser.Browser(upper_left_coords, bot_right_coords,
                                       col_widths, db_name, table)
         BrowserFactory._browser_map[name] = new_browser
-        BrowserFactory._cur_idx = BrowserFactory._cur_idx + 1
-        BrowserFactory._browser_indexes.insert(BrowserFactory._cur_idx,\
-                new_browser)
+        BrowserFactory._browser_indexes.insert(BrowserFactory._cur_idx + 1,
+                                               new_browser)
+        BrowserFactory.set_cur(BrowserFactory._cur_idx + 1)
         return new_browser
 
     @staticmethod

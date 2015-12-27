@@ -317,8 +317,11 @@ class Browser:
                 self._cur_row = self._cur_row - quantifier
             else:
                 self._cur_row = self._cur_row + quantifier
-            if self._cur_row > self._END_ROW - 2:
-                self._cur_row = self._bot_row = self._END_ROW - 2
+            #if self._cur_row > self._END_ROW - 2:
+                #self._cur_row = self._bot_row = self._END_ROW - 2
+                #self._top_row = self._bot_row - self._VIS_RNG[0]
+            if self._cur_row > self._row_count - 1:
+                self._cur_row = self._bot_row = self._row_count - 1
                 self._top_row = self._bot_row - self._VIS_RNG[0]
             elif self._cur_row > self._bot_row:
                 self._bot_row = self._cur_row

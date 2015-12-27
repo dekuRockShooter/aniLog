@@ -1,6 +1,5 @@
+import math
 import curses
-import curses
-import shared
 import shared
 
 class Coordinates:
@@ -69,8 +68,8 @@ class Browser:
     END = 8
     PRIMARY_KEY = 'rowid'
 
-    def __init__(self, upper_left_coords, bot_right_coords, row_count,\
-            col_count, col_widths, db_name, table):
+    def __init__(self, upper_left_coords, bot_right_coords,
+                 col_widths, db_name, table):
         try:
             self._db = shared.DBRegistry.get_db(db_name)
         except KeyError:
@@ -89,12 +88,12 @@ class Browser:
                 bot_right_coords[1] - upper_left_coords[1])
         self._row_count = 0
         self._SCR_COORDS = [upper_left_coords, bot_right_coords]
-        self._END_ROW = row_count
+        self._END_ROW = 1
         self._BEG_ROW = 0
         self._bot_row = 0
         self._top_row = self._VIS_RNG[0] # TODO: this should be bot_row
 
-        self._END_COL = col_count
+        self._END_COL = int(sum(col_widths) + 2*len(col_widths))
         self._BEG_COL = 0
         self._left_col = 0
         self._right_col = self._VIS_RNG[1]
@@ -146,12 +145,12 @@ class Browser:
             the rows are written to the browser. If no rows are given, then
             all rows from the table are used.
         """
+        if not rows:
+            rows = self._db.select_all_from(self._table)
         self._setup_curses()
         self._pad.clear()
         self._row_count = 0
         self._row_ids.clear()
-        if not rows:
-            rows = self._db.select_all_from(self._table)
         self._populate_browser(rows)
 
     def _setup_curses(self):

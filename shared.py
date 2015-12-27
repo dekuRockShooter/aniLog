@@ -111,15 +111,9 @@ class BrowserFactory:
         BrowserFactory._cur_browser = BrowserFactory._browser_indexes[idx]
         BrowserFactory._cur_idx = idx
 
-    # TODO: are row_count and col_count really necessary? The number of rows
-    # is determined by the number of rows in a query. If row_count ends up
-    # being smaller than this number, then the pad will be resized and the
-    # initial allocation will have been a waste of resources. The number of
-    # columns is implied by col_widths. The sum of all widths can be used to
-    # determine the number of columns to initiate the pad with.
     @staticmethod
-    def create(upper_left_coords, bot_right_coords, row_count,
-               col_count, col_widths, db_name, table):
+    def create(upper_left_coords, bot_right_coords,
+               col_widths, db_name, table):
         """Create a new browser.
 
         Args:
@@ -129,10 +123,6 @@ class BrowserFactory:
             bot_right_coords (tuple): The screen coordinates at which
                 the bottom right corner of the browser is drawn. The
                 format is (row, column).
-            row_count: The number of rows to initialize the browser
-                with.
-            col_count: The number of columns to initialize the browser
-                with.
             col_widths (list): The widths (in numbers of characters)
                  that each column in the table are displayed with.
             db_name: The name of the database to use.
@@ -141,8 +131,8 @@ class BrowserFactory:
         name = '{}.{}'.format(db_name, table)
         if name in BrowserFactory._browser_map:
             return BrowserFactory._browser_map[name]
-        new_browser = browser.Browser(upper_left_coords, bot_right_coords,\
-                row_count, col_count, col_widths, db_name, table)
+        new_browser = browser.Browser(upper_left_coords, bot_right_coords,
+                                      col_widths, db_name, table)
         BrowserFactory._browser_map[name] = new_browser
         BrowserFactory._cur_idx = BrowserFactory._cur_idx + 1
         BrowserFactory._browser_indexes.insert(BrowserFactory._cur_idx,\

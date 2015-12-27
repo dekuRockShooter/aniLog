@@ -51,10 +51,10 @@ class EditCell(Command):
                 col_name=cur_browser.get_col_name(),\
                 value=cmd[2],\
                 primary_key=cur_browser.PRIMARY_KEY,\
-                id=cur_browser.get_cur_rowid())
+                id=cur_browser.get_prim_key())
         cur_db.execute(s)
         cur_db.commit()
-        cur_browser.update_cur_cell()
+        cur_browser.on_entry_updated()
 
 class NewEntry(Command):
     def execute(self):
@@ -66,7 +66,7 @@ class NewEntry(Command):
         s = 'insert into "{table}" default values'.format(table=table_name)
         cur_db.execute(s)
         cur_db.commit()
-        cur_browser.update_new_entry()
+        cur_browser.on_entry_inserted()
 
 class DeleteEntry(Command):
     def execute(self):
@@ -83,10 +83,10 @@ class DeleteEntry(Command):
         s = 'delete from "{table}" where "{prim_key}"="{val}"'.format(\
                 table=table_name,
                 prim_key=cur_browser.PRIMARY_KEY,
-                val=cur_browser.get_cur_rowid())
+                val=cur_browser.get_prim_key())
         cur_db.execute(s)
         cur_db.commit()
-        cur_browser.update_del_entry()
+        cur_browser.on_entry_deleted()
 
 class CopyEntry(Command):
     def execute(self):
@@ -98,7 +98,7 @@ class CopyEntry(Command):
         s = 'select * from "{table}" where "{prim_key}"="{val}"'.format(\
                 table=table_name,
                 prim_key=cur_browser.PRIMARY_KEY,
-                val=cur_browser.get_cur_rowid())
+                val=cur_browser.get_prim_key())
         row =  list(cur_db.execute(s)[0])
         row[0] = 'null' # for autoincrementing the rowid
         for idx, val in enumerate(row[1:], 1):
@@ -121,7 +121,7 @@ class PasteEntry(Command):
                 val=str(row))
         cur_db.execute(s)
         cur_db.commit()
-        cur_browser.update_new_entry()
+        cur_browser.on_entry_inserted()
 
 class NextBrowser(Command):
     def execute(self):
@@ -160,7 +160,7 @@ class Filter(Command):
                 table=table_name,
                 col_name=col_name,
                 val=search_term)
-        cur_browser.update_query(s)
+        cur_browser.on_new_query(cur_db.execute(s))
 
 class Sort(Command):
     ASC='asc'
@@ -181,4 +181,4 @@ class Sort(Command):
                 table=table_name,
                 col_name=col_name,
                 dir=self._direction)
-        cur_browser.update_query(s)
+        cur_browser.on_new_query(cur_db.execute(s))

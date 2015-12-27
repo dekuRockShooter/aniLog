@@ -218,7 +218,7 @@ class Browser:
             self._END_ROW = rows
         self._pad.resize(self._END_ROW, self._END_COL)
 
-    def update_query(self, rows):
+    def on_new_query(self, rows):
         """Redraw the screen using the given rows.
 
             Parameters:
@@ -231,7 +231,7 @@ class Browser:
         self.create(rows)
         self.redraw()
 
-    def update_new_entry(self):
+    def on_entry_inserted(self):
         """ Redraw the screen with a new entry.
 
             This method should be called whenever a row has been inserted into
@@ -241,7 +241,7 @@ class Browser:
         self._populate_browser(row)
         self.redraw()
 
-    def update_cur_cell(self):
+    def on_entry_updated(self):
         """Redraw the current cell's value.
 
             This method should be called whenever a row's column has been
@@ -259,7 +259,7 @@ class Browser:
         self._pad.addnstr(self._cur_row, coord.beg, new_value, col_width)
         self.redraw()
 
-    def update_del_entry(self):
+    def on_entry_deleted(self):
         """Redraw the screen without the current row.
 
             This method should be called whenever an entry has been deleted

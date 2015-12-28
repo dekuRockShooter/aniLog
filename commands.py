@@ -1,9 +1,35 @@
+"""Define commands.
+
+    This module holds various commands to use in aniLog.
+
+    Classes:
+        Command: The interface for all commands.
+        ScrollDown: scroll down in the browser.
+        ScrollUp: scroll up in the browser.
+        ScrollLeft: scroll left in the browser.
+        ScrollRight: scroll right in the browser.
+        EditCell: edit the current cell's value.
+        NewEntry: Add a new entry to the browser.
+        DeleteEntry: Delete the current entry.
+        CopyEntry: copy the current entry.
+        PasteEntry: paste a copied entry into the current browser.
+        NextBrowser: switch to the next browser.
+        PreviousBrowser: switch to the previous browser.
+        Filter: Show entries that match a search term.
+        Sort: Sort the entries.
+"""
 import curses
 from browser import Browser
 from shared import BrowserFactory, StatusBarRegistry, DBRegistry, CopyBuffer,\
         UIRegistry
 
+
 class Command:
+    """Command interface.
+
+    Abstract methods:
+        execute: Execute the command.
+    """
     def __init__(self, name, desc, quantifier=1, **kwargs):
         self._name = name
         self._desc = desc
@@ -11,27 +37,37 @@ class Command:
         self._args = kwargs
 
     def execute(self):
+        """Execute the command.
+
+        This method is meant to be overriden.
+        """
+        raise NotImplementedError('This method must be overriden.')
         pass
+
 
 class ScrollDown(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
         cur_browser.scroll(Browser.DOWN, self._quantifier)
 
+
 class ScrollUp(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
         cur_browser.scroll(Browser.UP, self._quantifier)
+
 
 class ScrollLeft(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
         cur_browser.scroll(Browser.LEFT, self._quantifier)
 
+
 class ScrollRight(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
         cur_browser.scroll(Browser.RIGHT, self._quantifier)
+
 
 class EditCell(Command):
     def execute(self):
@@ -55,6 +91,8 @@ class EditCell(Command):
         cur_db.execute(s)
         cur_db.commit()
         cur_browser.on_entry_updated()
+
+
 
 class NewEntry(Command):
     def execute(self):
@@ -88,6 +126,7 @@ class DeleteEntry(Command):
         cur_db.commit()
         cur_browser.on_entry_deleted()
 
+
 class CopyEntry(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
@@ -108,6 +147,7 @@ class CopyEntry(Command):
             row[idx] = '{}{}{}'.format('"', val, '"')
         CopyBuffer.set(CopyBuffer.DEFAULT_KEY, tuple(row))
 
+
 class PasteEntry(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
@@ -123,6 +163,7 @@ class PasteEntry(Command):
         cur_db.commit()
         cur_browser.on_entry_inserted()
 
+
 class NextBrowser(Command):
     def execute(self):
         cur_idx = BrowserFactory.get_cur_idx()
@@ -132,6 +173,7 @@ class NextBrowser(Command):
             BrowserFactory.set_cur(0)
         UIRegistry.get().on_browser_switch()
         StatusBarRegistry.get().on_browser_switch()
+
 
 class PreviousBrowser(Command):
     def execute(self):
@@ -144,6 +186,7 @@ class PreviousBrowser(Command):
             BrowserFactory.set_cur(BrowserFactory.get_count() - 1)
         UIRegistry.get().on_browser_switch()
         StatusBarRegistry.get().on_browser_switch()
+
 
 class Filter(Command):
     def execute(self):
@@ -161,6 +204,7 @@ class Filter(Command):
                 col_name=col_name,
                 val=search_term)
         cur_browser.on_new_query(cur_db.execute(s))
+
 
 class Sort(Command):
     ASC='asc'

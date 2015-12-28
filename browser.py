@@ -196,45 +196,55 @@ class Browser:
         self._pad.refresh(self._top_row, self._left_col,\
                 *self._SCR_COORDS[0], *self._SCR_COORDS[1])
 
-    def _resize(self, rows=0, cols=0):
+    def _resize(self, rows=None, cols=None):
         """Increase the number rows and columns of the pad.
 
-            Parameters:
-                rows: The new number of rows. This must be greater than the
-                    current number.
-                cols: The new number of columns. This must be greater than the
-                    current number.
+        The pad is resized to hold the given number of rows and columns.
+        If no value for a row or column is given, then the respective
+        dimension is doubled. If an argument is less than or equal to
+        its current value, then nothing is done. If only one dimension
+        is to be resized, then make sure to give the other dimension
+        a small value (such as 0).
 
-            The pad is resized to hold the given number of rows and columns.
-            If no value for a row or column is given, then the respective
-            dimension is doubled. If an argument is the same as its current
-            value, then nothing is done. If an argument is less than its
-            current value, then nothing is done.
+        Parameters:
+            rows: The new number of rows. This must be greater than the
+                current number of rows.
+            cols: The new number of columns. This must be greater than 
+                the current number of columns.
         """
-        if rows == 0:
+        if (rows <= self._END_ROW) and (cols <= self._END_COL):
+            return
+        # Get the new number of rows.
+        if rows is None:
             self._END_ROW = 2 * self._END_ROW
-        else:
+        elif rows > self._END_ROW:
             self._END_ROW = rows
+        # Get the new number of columns.
+        if cols is None:
+            self._END_COL = 2 * self._END_COL
+        elif cols > self._END_COL:
+            self._END_COL =cols
         self._pad.resize(self._END_ROW, self._END_COL)
 
     def on_new_query(self, rows):
         """Redraw the screen using the given rows.
 
-            Parameters:
-                rows: A sequence of tuples. Each tuple represents a line, and
-                    the elements in a tuple represent database columns.
+        The browser's current contents are cleared, and the new rows
+        are displayed.
 
-            The browser's current contents are cleared, and the new lines
-            are displayed.
+        Args:
+            rows ([tuples]): The rows to display.  Each tuple
+                represents a row, and the elements in a tuple
+                represent the columns in the row.
         """
         self.create(rows)
         self.redraw()
 
     def on_entry_inserted(self):
-        """ Redraw the screen with a new entry.
+        """Redraw the screen with a new entry.
 
-            This method should be called whenever a row has been inserted into
-            the browser's table. The new entry is displayed.
+        This method should be called whenever a row has been inserted
+        into the browser's table. The new entry is displayed.
         """
         row = [self._db.get_newest(self._table)]
         self._populate_browser(row)
@@ -243,8 +253,8 @@ class Browser:
     def on_entry_updated(self):
         """Redraw the current cell's value.
 
-            This method should be called whenever a row's column has been
-            changed. The current cell's value is updated to its changed value.
+        This method should be called whenever a row's column has been
+        changed. The current cell's value is updated to its new value.
         """
         coord = self._col_coords[self._cur_col]
         new_value = str(self.get_cur_cell())
@@ -261,8 +271,8 @@ class Browser:
     def on_entry_deleted(self):
         """Redraw the screen without the current row.
 
-            This method should be called whenever an entry has been deleted
-            in the browser's table.
+        This method should be called whenever an entry has been deleted
+        in the browser's table.
         """
         self._row_ids.pop(self._cur_row)
         self._pad.deleteln()
@@ -270,10 +280,10 @@ class Browser:
         self.redraw()
 
     def get_cur_cell(self):
-        """Return the value of the current cell.
+        """Return the value of the currently selected cell.
 
-            The current cell's value is queried from the database and returned
-            as the datatype that it is stored as in the database.
+        The current cell's value is queried from the database and 
+        returned as the datatype that it is stored as in the database.
         """
         cmd = 'select "{col_name}" from "{table}" where "{prim_key}"="{key}"'.\
                 format(col_name=self._col_names[self._cur_col],\
@@ -285,7 +295,9 @@ class Browser:
     def get_name(self):
         """Return the name of the browser.
 
-            The name of the browser is {db name}.{table name}.
+        The name of the browser is db.table, where db is the path to
+        the database it is connected to, and table is the table it
+        displays.
         """
         return '{}.{}'.format(self._db_name, self._table)
 

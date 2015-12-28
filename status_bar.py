@@ -24,10 +24,6 @@ class StatusBar:
         self._scr_top_row = scr_top_row
         self._scr_right_col = scr_right_col
 
-    # TODO: merge into edit. Edit will take an optional string as an arg.
-    def set_str(self, new_str):
-        self._cur_str = new_str
-
     def create(self):
         cur_browser = shared.BrowserFactory.get_cur()
         name = cur_browser.get_name()
@@ -45,7 +41,6 @@ class StatusBar:
     def destroy(self):
         curses.echo()
 
-    # TODO: call this edit and accept a string to initialize the bar to.
     def edit(self, initial_str=''):
         self._win.addstr(0,0, ''.join([' ' for i in range(79)]))#\
         self._win.addstr(0, 0, initial_str)

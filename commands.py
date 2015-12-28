@@ -110,7 +110,7 @@ class DeleteEntry(Command):
     def execute(self):
         cur_status_bar = StatusBarRegistry.get()
         reply = cur_status_bar.prompt('Confirm deletion (y/n): ',
-                                      status_bar.StatusBar.YESNO)
+                                      status_bar.StatusBar.CONFIRM)
         if reply == ord('n'):
             return
         cur_browser = BrowserFactory.get_cur()

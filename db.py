@@ -23,6 +23,7 @@ class DBConnection:
         get_newest: Return the most recently inserted row.
         execute: Execute any sqlite statement.
         commit: Save any changes done to the database.
+        get_col_names: Return the names of a table's columns.
     """
 
     def __init__(self, name):
@@ -46,6 +47,28 @@ class DBConnection:
         """Close the connection to the database."""
         if self._connection:
             self._connection.close()
+
+    def get_col_names(self, table_name):
+        """Return the column names of a table.
+
+        The names of all columns are returned as a list of strings.
+
+        Args:
+            table_name: The name of the table to get the names from.
+
+        Raises;
+            NoConnectionError: If the database has not been connected
+                to.
+            sqlite3.OperationalError: If the table does not exist.
+        """
+        if not self._connection:
+            raise self._no_connect_err
+        statement = 'pragma table_info({table})'.format(table=table_name)
+        rows = self._cursor.execute(statement)
+        col_names = []
+        for row in rows:
+            col_names.append(row[1])
+        return col_names
 
     def select_all_from(self, table):
         """Return every row from the table.

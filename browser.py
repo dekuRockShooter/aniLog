@@ -78,9 +78,7 @@ class Browser:
         finally:
             self._db.connect()
         self._row_ids = []
-        self._col_names = []
-        for row in self._db.execute('pragma table_info({})'.format(table)):
-            self._col_names.append(row[1])
+        self._col_names = self._db.get_col_names(table)
         self._db_name = db_name
         self._table = table
         self.PRIMARY_KEY = Browser.PRIMARY_KEY

@@ -73,8 +73,8 @@ class EditCell(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
         cur_status_bar = StatusBarRegistry.get()
-        cur_status_bar.set_str(str(cur_browser.get_cur_cell()))
-        cmd = cur_status_bar.redraw()
+        cur_value = str(cur_browser.get_cur_cell())
+        cmd = cur_status_bar.edit(cur_value)
         new_value = ' '.join(cmd)
         browser_name = cur_browser.get_name()
         db_name = browser_name[: browser_name.rfind('.')]

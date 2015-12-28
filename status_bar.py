@@ -4,6 +4,17 @@ import shared
 
 # TODO: no hard coding
 class StatusBar:
+    """Display information or enter commands.
+
+    The status bar shows information about the program's current state.
+    It is also used to write and send commands to the program.
+    
+    Methods:
+        edit: Write a command for the user to edit.
+        create: Setup the status bar.
+        update: Redraw the status bar.
+        destroy: Close the status bar.
+    """
     def __init__(self, scr_top_row, scr_right_col):
         curses.initscr()
         curses.noecho()
@@ -13,6 +24,7 @@ class StatusBar:
         self._scr_top_row = scr_top_row
         self._scr_right_col = scr_right_col
 
+    # TODO: merge into edit. Edit will take an optional string as an arg.
     def set_str(self, new_str):
         self._cur_str = new_str
 
@@ -33,54 +45,23 @@ class StatusBar:
     def destroy(self):
         curses.echo()
 
-    def redraw(self):
+    # TODO: call this edit and accept a string to initialize the bar to.
+    def edit(self, initial_str=''):
         self._win.addstr(0,0, ''.join([' ' for i in range(79)]))#\
-        self._win.addstr(0, 0, self._cur_str)
+        self._win.addstr(0, 0, initial_str)
         self._win.refresh()
-        txt = self._text_pad.edit()
-        parsed_str = []
-        token = []
-        in_single_quotes = False
-        in_double_quotes = False
-        for letter in txt:
-            if in_single_quotes:
-                if letter == '\'':
-                    parsed_str.append(''.join(token))
-                    token.clear()
-                    in_single_quotes = False
-                else:
-                    token.append(letter)
-            elif in_double_quotes:
-                if letter == '"':
-                    parsed_str.append(''.join(token))
-                    token.clear()
-                    in_double_quotes = False
-                else:
-                    token.append(letter)
-            else:
-                if letter == ' ' and len(token) > 0:
-                    parsed_str.append(''.join(token))
-                    token.clear()
-                elif letter == '\'':
-                    in_single_quotes = True
-                elif letter == '"':
-                    in_double_quotes = True
-                else:
-                    token.append(letter.strip())
-        if in_single_quotes or in_double_quotes:
-            pass
-        else:
-            # cmd_map[parsed_str[0]](parsed_str[1:]*)
-            pass
+        input = self._text_pad.edit().split()
+        # TODO: get the command associated with input[0]
+        # TODO: get flags
         self._win.addstr(0,0, ''.join([' ' for i in range(79)]))#\
         self.update()
-        return parsed_str
+        return input
 
     def scroll(self, direction, quantifier=1):
         pass
 
     def on_browser_switch(self):
-        """ Switch to the new browser and display it.
+        """Switch to the new browser and display it.
 
         Assumes that the current browser has already had its create method
         called.

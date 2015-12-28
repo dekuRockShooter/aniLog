@@ -11,7 +11,19 @@ class NoConnectionError(Exception):
         return 'Database not connected. Call connect().'
 
 class DBConnection:
-    """Interface for an sqlite3 database."""
+    """Interface for an sqlite3 database.
+
+    This class acts as an interface to an sqlite3 database to easily
+    and quickly execute queries.
+
+    Methods:
+        connect: Connect to the database.
+        close: Close the connection to the database. 
+        select_all_from: Return all rows of a table.
+        get_newest: Return the most recently inserted row.
+        execute: Execute any sqlite statement.
+        commit: Save any changes done to the database.
+    """
 
     def __init__(self, name):
         self._name = name

@@ -15,6 +15,9 @@ class StatusBar:
         update: Redraw the status bar.
         destroy: Close the status bar.
     """
+    CONFIRM = 1
+    ERROR = 2
+
     def __init__(self, scr_top_row, scr_right_col):
         curses.initscr()
         curses.noecho()
@@ -41,16 +44,50 @@ class StatusBar:
     def destroy(self):
         curses.echo()
 
-    def edit(self, initial_str=''):
-        self._win.addstr(0,0, ''.join([' ' for i in range(79)]))#\
-        self._win.addstr(0, 0, initial_str)
+    def _clear(self, new_str=''):
+        self._win.clear()
+        self._win.addstr(0, 0, new_str)
         self._win.refresh()
+
+    def edit(self, initial_str=''):
+        self._clear(initial_str)
         input = self._text_pad.edit().split()
         # TODO: get the command associated with input[0]
         # TODO: get flags
-        self._win.addstr(0,0, ''.join([' ' for i in range(79)]))#\
         self.update()
         return input
+
+    def prompt(self, prompt_str, mode):
+        """Show a message.
+
+        Show a message in the status bar.  Depending on the mode,
+        different actions will be performed.
+
+        Args:
+            prompt_str: The message to display.
+            mode: Specifies what actions the status bar should take.
+
+        Modes:
+            StatusBar.CONFIRM: The prompt is meant to ask for
+                confirmation.  The user must enter a 'y' or 'n',
+                and the reply is returned.
+            StatusBar.ERROR: The prompt is meant to notify the user
+                that an error has occured.
+
+        Returns:
+            'y'/'n': If the mode is StatusBar.CONFIRM
+            An empty string: If the mode is StatusBar.ERROR
+        """
+        ret_str = ''
+        if mode == StatusBar.CONFIRM:
+            self._clear(prompt_str)
+            ret_str = 0
+            while not (ret_str == ord('y') or ret_str == ord('n')):
+                ret_str = self._win.getch()
+            self.update()
+        elif mode == StatusBar.ERROR:
+            self._clear('ERROR: {}'.format(prompt_str))
+        return ret_str
 
     def scroll(self, direction, quantifier=1):
         pass

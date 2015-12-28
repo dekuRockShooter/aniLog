@@ -18,6 +18,7 @@ import browser
 import status_bar
 import ui
 
+
 class UIRegistry:
     """Manage the user interface.
 
@@ -38,9 +39,16 @@ class UIRegistry:
 
     @staticmethod
     def create(keymap):
-        """Create the user interface if it doesn't exist already."""
+        """Create the user interface if it doesn't exist already.
+
+        The user interface is returned.
+
+        Args:
+            keymap (KeyMap): The keymap to use.
+        """
         if UIRegistry._ui is None:
             UIRegistry._ui = ui.UI(keymap)
+        return UIRegistry._ui
 
     @staticmethod
     def destroy():
@@ -49,6 +57,7 @@ class UIRegistry:
         This method calls the user interface's destroy method.
         """
         UIRegistry._ui.destroy()
+
 
 class BrowserFactory:
     """Manage all browsers.
@@ -106,7 +115,8 @@ class BrowserFactory:
             name: The name of the browser to open.
 
         Raises:
-            IndexError: if idx or name are out of bounds.
+            IndexError: if idx is out of bounds.
+            KeyError: if name is not a name of a browser.
         """
         BrowserFactory._cur_browser = BrowserFactory._browser_indexes[idx]
         BrowserFactory._cur_idx = idx
@@ -146,11 +156,33 @@ class BrowserFactory:
         return new_browser
 
     @staticmethod
-    def destroy(name='', idx=None):
-        """Raises a KeyError"""
+    def destroy(name=None, idx=None):
+        """Destroy (close) a browser.
+
+        The browser to destroy be identified via its index or its name.
+
+        If both idx and name are given, then the method first tries to 
+        destroy using the index.  If that is unsuccessful, then it tries
+        using the name.
+
+        If neither idx nor name is given, then the current browser is
+        destroyed.
+
+        The new browser is the one after the destroyed one.  If the
+        destroyed browser was the last one, then the new browser is
+        the one that was before it.
+
+        Args:
+            idx: The index of the browser to destroy.
+            name: The name of the browser to destroy.
+
+        Raises:
+            IndexError: if idx is out of bounds.
+            KeyError: if name is not a name of a browser.
+        """
         if idx:
             name = BrowserFactory,_browser_indexes[idx].get_name()
-        elif not name:
+        elif name is None:
             name = BrowserFactory,_browser_indexes[\
                     BrowserFactory._cur_idx].get_name()
         BrowserFactory,_browser_map[name].destroy()
@@ -167,15 +199,32 @@ class BrowserFactory:
             browser.destroy()
         BrowserFactory._browser_map.clear()
 
+
 class StatusBarRegistry:
+    """Manage the status bar.
+
+    This class provides static methods for creating, accessing, and
+    removing the status bar.
+
+    Methods:
+        get: Return the status bar.
+        create: Create the status bar.
+        destroy: Destroy the status bar.
+    """
     _status_bar = None
 
     @staticmethod
     def get():
+        """Return the status bar."""
         return StatusBarRegistry._status_bar
 
     @staticmethod
     def create(scr_top_row, scr_right_col):
+        """Create the status bar.
+
+        The status bar is created if it has not been already.  The
+        status bar is returned.
+        """
         if not StatusBarRegistry._status_bar:
             StatusBarRegistry._status_bar =\
                 status_bar.StatusBar(scr_top_row, scr_right_col)
@@ -183,31 +232,70 @@ class StatusBarRegistry:
 
     @staticmethod
     def destroy():
+        """Destroy (close) the status bar."""
         StatusBarRegistry._status_bar.destroy()
 
     @staticmethod
     def destroy_all():
         StatusBarRegistry.destroy()
 
+
 class DBRegistry:
+    """Manage connections to databases.
+
+    This class provides static methods for creating, accessing, and
+    removing connections to databases.
+
+    One connection per database is allowed, which can be shared by
+    any class.
+
+    Methods:
+        get: Return a database connection.
+        create: Create a database connection.
+        destroy: Close a database connection.
+    """
     _db_map = {}
 
     @staticmethod
     def create(name):
-        if name in DBRegistry._db_map:
-            return
-        DBRegistry._db_map[name] = db.DBConnection(name)
+        """Open a database connection.
+
+        A connection to the database is created and returned.  If the
+        connection already exists, then it is just returned.
+
+        Args:
+            name (path): The name of the database to connect to.
+        """
+        if name not in DBRegistry._db_map:
+            DBRegistry._db_map[name] = db.DBConnection(name)
+        return DBRegistry._db_map[name]
 
     @staticmethod
     def get_db(name):
-        """Raises a KeyError"""
+        """Return a database connection.
+
+        Args:
+            name (path): The name of the database.
+
+        Raises:
+            KeyError: if no database with the given name has been
+                connected to.
+        """
         return DBRegistry._db_map[name]
 
     @staticmethod
     def destroy(name):
-        """Raises a KeyError"""
+        """Close a database connection.
+
+        Args:
+            name (path): The name of the database.
+
+        Raises:
+            KeyError: if no database with the given name has been
+                connected to.
+        """
         DBRegistry._db_map[name].close()
-        del DBRegistry._db_map[name]
+        DBRegistry._db_map.pop(name)
 
     @staticmethod
     def destroy_all():
@@ -215,15 +303,48 @@ class DBRegistry:
             db.close()
         DBRegistry._db_map.clear()
 
+
 class CopyBuffer:
+    """Manage the copy buffers.
+
+    This class provides static methods to access and modify the copy
+    buffers. The copy buffer is simply a map from a single character
+    (English alphabet, upper or lower case) to a tuple. The name of
+    a buffer is thus the character used as the key, and the contents
+    of a buffer is the tuple.  The tuple is intended to represent a row
+    in a database table. Thus, its elements should be the values of
+    each column.  Use this class to copy a row from one table into 
+    another table (provided both have the same schema).
+
+    Attributes:
+        DEFAULT_BUFFER: The buffer that is used if no buffer is given.
+
+    Methods:
+        get: Return the contents of a copy buffer.
+        set: Change the contents of a copy buffer.
+    """
     DEFAULT_KEY = '0'
     _copy_buffer = {}
 
     @staticmethod
     def set(key, val):
+        """Change the contents of a buffer.
+
+        Args:
+            key (char): The name of the buffer.
+            val (tuple): The new content of the buffer. Each element is
+                the value of a column in some database table.
+        """
         CopyBuffer._copy_buffer[key] = val
 
     @staticmethod
     def get(key):
-        """Raises a KeyError"""
+        """Return the contents of a buffer.
+
+        Args:
+            key: The name of the buffer.
+
+        Raises:
+            KeyError: if no buffer with the given name exists.
+        """
         return CopyBuffer._copy_buffer[key]

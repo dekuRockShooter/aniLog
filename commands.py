@@ -75,8 +75,7 @@ class EditCell(Command):
         cur_status_bar = StatusBarRegistry.get()
         cur_status_bar.set_str(str(cur_browser.get_cur_cell()))
         cmd = cur_status_bar.redraw()
-        if len(cmd) != 3 or (cmd[1] == cmd[2]):
-            return
+        new_value = ' '.join(cmd)
         browser_name = cur_browser.get_name()
         db_name = browser_name[: browser_name.rfind('.')]
         table_name = browser_name[browser_name.rfind('.') + 1:]
@@ -85,7 +84,7 @@ class EditCell(Command):
                 where "{primary_key}"="{id}"'.format(\
                 table=table_name,\
                 col_name=cur_browser.get_col_name(),\
-                value=cmd[2],\
+                value=new_value,\
                 primary_key=cur_browser.PRIMARY_KEY,\
                 id=cur_browser.get_prim_key())
         cur_db.execute(s)

@@ -19,6 +19,7 @@
         Sort: Sort the entries.
 """
 import curses
+import status_bar
 from browser import Browser
 from shared import BrowserFactory, StatusBarRegistry, DBRegistry, CopyBuffer,\
         UIRegistry
@@ -92,7 +93,6 @@ class EditCell(Command):
         cur_browser.on_entry_updated()
 
 
-
 class NewEntry(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
@@ -105,12 +105,13 @@ class NewEntry(Command):
         cur_db.commit()
         cur_browser.on_entry_inserted()
 
+
 class DeleteEntry(Command):
     def execute(self):
         cur_status_bar = StatusBarRegistry.get()
-        cur_status_bar.set_str('Confirm deletion (y//n): ')
-        reply = cur_status_bar.redraw()[-1]
-        if reply not in ('y', 'Y'):
+        reply = cur_status_bar.prompt('Confirm deletion (y/n): ',
+                                      status_bar.StatusBar.YESNO)
+        if reply == ord('n'):
             return
         cur_browser = BrowserFactory.get_cur()
         browser_name = cur_browser.get_name()

@@ -105,30 +105,35 @@ class Browser:
 
         self._pad = None
 
+    # TODO: Don't hardcode the beginning of the first column. It wont
+    # necessarily be zero. Also, account for zero widths.
     def _set_col_coords(self, col_widths):
         """Set the coordinates of all the columns.
 
-            Parameters:
-                col_widths: A sequence of numbers. The k'th element is the
-                    number of characters used by the k'th column. col_width's
-                    length must be the same as the number of columns in the
-                    table. The numbers must be positive integers.
+        A column is confined within the bounds coords.beg and coords.end,
+        inclusive. coords.sep is the coordinate that separates two columns.
 
-            A column is confined within the bounds coords.beg and coords.end,
-            inclusive. coords.sep is the coordinate that separates two columns.
-            For any column, end - beg = width, and beg = 1 + prev_col.sep.
+        Args:
+            col_widths ([ints]): The widths (in numbers of characters)
+                used to display the columns in the database. The k'th
+                element is the width of the k'th column.  col_width's
+                length must be the same as the number of columns in the
+                table. The numbers must be nonnegative integers. If a
+                width is zero, then that column is not displayed.
         """
         assert(len(col_widths) == len(self._col_names))
         self._col_coords.clear()
         self._col_coords.append(Coordinates(0, col_widths[0]-1, col_widths[0]))
+
+        # For any column, end - beg = width - 1, and beg = 1 + prev_col.sep.
+        # If a column's width is 0, then set its sep to prev.sep so that there
+        # is no extra gap. Also, leave its beg greater than its end so that
+        # curses doesn't try to write any of it.
         for width in col_widths[1:]:
             prev_sep = self._col_coords[-1].sep
-            if width == 0:
-                self._col_coords.append(None)
-                continue
             beg = prev_sep + 1
             end = prev_sep + width
-            sep = prev_sep + width + 1
+            sep = prev_sep + width + 1 if width > 0 else prev_sep
             self._col_coords.append(Coordinates(beg, end, sep))
 
     # TODO: save the query so that the same entries will be shown after a
@@ -136,14 +141,15 @@ class Browser:
     def create(self, rows=None):
         """Display the given rows to an empty browser.
 
-            Parameters:
-                rows: A sequence of tuples. Each tuple represents a line. A
-                    tuple's elements represent columns in the database table.
+        The browser is cleared and all data is reset to reflect the
+        empty browser.  curses is initialized if it has not been
+        already. Then, the rows are written to the browser. If no rows
+        are given, then all rows from the database table are used.
 
-            The browser is cleared and all data is reset to reflect the empty
-            browser. curses is initialized if it has not been already. Then,
-            the rows are written to the browser. If no rows are given, then
-            all rows from the table are used.
+        Args:
+            rows ([tuples]): The rows to display.  Each tuple
+                represents a row, and the elements in a tuple
+                represent the columns in the row.
         """
         if not rows:
             rows = self._db.select_all_from(self._table)
@@ -154,7 +160,11 @@ class Browser:
         self._populate_browser(rows)
 
     def _setup_curses(self):
-        """Initialize the pad and its settings."""
+        """Initialize the browser and its settings.
+
+        If the browser has already been initialized, then nothing
+        is done.
+        """
         if self._pad != None:
             return
         curses.initscr()
@@ -163,24 +173,24 @@ class Browser:
         self._pad.leaveok(0)
 
     def _populate_browser(self, rows):
-        """Write lines to the pad.
+        """Write rows to the browser.
 
-            Parameters:
-                rows: A sequence of tuples. Each tuple represents a line. A
-                    tuple's elements represent columns in the database table.
+        The rows are written to the browser starting at the first 
+        empty line.  If there are not enough lines in the browser,
+        then it is resized.
 
-            The rows are written to the pad starting at the first empty line
-            (which is _row_count). Before writing the lines, however, the
-            function makes sure that the pad has enough lines. If it does not,
-            then it calls resize to increase the number of rows.
+        Args:
+            rows ([tuples]): The rows to display.  Each tuple
+                represents a row, and the elements in a tuple
+                represent the columns in the row.
         """
         if (self._row_count + len(rows)) > self._END_ROW:
             self._resize(2 * (self._row_count + len(rows)))
         for row in rows:
-            # record the primary key
             self._row_ids.append(row[0])
 
-            # write each column with the correct width at the correct coord.
+            # Write each column with the correct width at the correct coord,
+            # starting at the _row_count'th row.
             for coord, col_val in zip(self._col_coords, row):
                 col_width = coord.end - coord.beg + 1
                 self._pad.addnstr(self._row_count, coord.beg, str(col_val),\
@@ -188,13 +198,13 @@ class Browser:
             self._row_count = self._row_count + 1
 
     def destroy(self):
-        """Deallocate the browser."""
+        """Close the browser."""
         self._pad.keypad(0)
 
     def redraw(self):
         """Redraw the screen to show new changes."""
-        self._pad.refresh(self._top_row, self._left_col,\
-                *self._SCR_COORDS[0], *self._SCR_COORDS[1])
+        self._pad.refresh(self._top_row, self._left_col,
+                          *self._SCR_COORDS[0], *self._SCR_COORDS[1])
 
     def _resize(self, rows=None, cols=None):
         """Increase the number rows and columns of the pad.
@@ -206,7 +216,7 @@ class Browser:
         is to be resized, then make sure to give the other dimension
         a small value (such as 0).
 
-        Parameters:
+        Args:
             rows: The new number of rows. This must be greater than the
                 current number of rows.
             cols: The new number of columns. This must be greater than 

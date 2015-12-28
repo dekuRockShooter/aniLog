@@ -9,8 +9,13 @@ class StatusBar:
     The status bar shows information about the program's current state.
     It is also used to write and send commands to the program.
     
+    Class Attributes:
+        CONFIRM: Show a prompt in confirmation mode.
+        ERROR: Show a prompt in error mode.
+
     Methods:
         edit: Write a command for the user to edit.
+        prompt: Show a message.
         create: Setup the status bar.
         update: Redraw the status bar.
         destroy: Close the status bar.
@@ -19,6 +24,15 @@ class StatusBar:
     ERROR = 2
 
     def __init__(self, scr_top_row, scr_right_col):
+        """Constructor.
+
+        Define the placement of the status bar.  The status bar always
+        starts at column zero in the screen.
+
+        Args:
+            scr_top_row: The row in the screen to place that bar in.
+            scr_right_col: The column in the screen where the bar ends.
+        """
         curses.initscr()
         curses.noecho()
         self._win = curses.newwin(1, 80, scr_top_row, scr_right_col)
@@ -27,7 +41,13 @@ class StatusBar:
         self._scr_top_row = scr_top_row
         self._scr_right_col = scr_right_col
 
+    # TODO: this seems useless. update is a better fit for what this
+    # tries to do.
     def create(self):
+        """Update the status bar string.
+
+        This method updates the string to be displayed in the status bar.
+        """
         cur_browser = shared.BrowserFactory.get_cur()
         name = cur_browser.get_name()
         idx = shared.BrowserFactory.get_cur_idx() + 1
@@ -35,21 +55,39 @@ class StatusBar:
         self._cur_str = '{}:{}/{}'.format(name, idx, browser_count)
 
     def update(self):
-        """Redisplays itself using updated information."""
-        self._win.addstr(0,0, ''.join([' ' for i in range(79)]))#\
+        """Update the status bar.
+
+        This method updates the status bar to show the current values
+        of each field.
+        """
         self.create()
-        self._win.addstr(0, 0, self._cur_str)
-        self._win.refresh()
+        self._clear(self._cur_str)
 
     def destroy(self):
+        """Close the status bar."""
         curses.echo()
 
     def _clear(self, new_str=''):
+        """Clear the status bar and add a new string.
+
+        Args:
+            new_str: The string to display in the status bar.
+        """
         self._win.clear()
         self._win.addstr(0, 0, new_str)
         self._win.refresh()
 
     def edit(self, initial_str=''):
+        """Open the status bar for editing.
+
+        The status bar takes keyboard focus until the user is done
+        editing.  The purpose of this method is to allow the user to
+        enter a command, which is executed immediately.
+
+        Args:
+            initial_str: The string to initialize the status bar with.
+                The user is able to edit it.
+        """
         self._clear(initial_str)
         input = self._text_pad.edit().split()
         # TODO: get the command associated with input[0]
@@ -95,12 +133,6 @@ class StatusBar:
     def on_browser_switch(self):
         """Switch to the new browser and display it.
 
-        Assumes that the current browser has already had its create method
-        called.
+        Update the status bar string and show it.
         """
-        cur_browser = shared.BrowserFactory.get_cur()
-        name = cur_browser.get_name()
-        idx = shared.BrowserFactory.get_cur_idx() + 1
-        browser_count = shared.BrowserFactory.get_count()
-        self._cur_str = '{}:{}/{}'.format(name, idx, browser_count)
         self.update()

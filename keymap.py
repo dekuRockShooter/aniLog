@@ -76,17 +76,6 @@ class KeyMap:
             key_map = key_map[x][0]
         prev_key_map[key_seq[-1]][1] = cmd
 
-    def get_command(self, key_seq):
-        key_map = self._key_map
-        prev_key_map = key_map
-        for key in key_seq:
-            prev_key_map = key_map
-            try:
-                key_map = key_map[key][0]
-            except:
-                return None
-        return prev_key_map[key_seq[-1]][1]
-
     def get_cmd(self, key_num):
         try:
             self._key_map_explorer, cmd = self._key_map_explorer[key_num]

@@ -75,7 +75,6 @@ class Browser:
         except KeyError:
             shared.DBRegistry.create(db_name)
             self._db = shared.DBRegistry.get_db(db_name)
-        finally:
             self._db.connect()
         self._row_ids = []
         self._col_names = self._db.get_col_names(table)

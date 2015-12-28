@@ -24,6 +24,7 @@ class DBConnection:
         execute: Execute any sqlite statement.
         commit: Save any changes done to the database.
         get_col_names: Return the names of a table's columns.
+        get_primary_keys: Return a table's primary keys.
     """
 
     def __init__(self, name):
@@ -47,6 +48,17 @@ class DBConnection:
         """Close the connection to the database."""
         if self._connection:
             self._connection.close()
+
+    def get_primary_keys(self, table_name):
+        if not self._connection:
+            raise self._no_connect_err
+        statement = 'pragma table_info({table})'.format(table=table_name)
+        rows = self._cursor.execute(statement)
+        prim_keys = []
+        for row in rows:
+            if row[-1] == 1:
+                prim_keys.append(row[1])
+        return prim_keys
 
     def get_col_names(self, table_name):
         """Return the column names of a table.

@@ -1,7 +1,36 @@
 KEY_ALT = 123456789
 
+
 class AniLogKeyParser:
+    """Convert a string to a list of numbers.
+
+    This callable is used to convert a string in an aniLog configurtion
+    file to a sequence that can be mapped to a Command object.  The
+    string should represent a series of key presses.
+
+    Methods:
+        __call__: Convert a string of key presses to a list of numbers.
+    """
     def __call__(self, key_str):
+        """Convert a string of key presses to a list of numbers.
+
+        Args:
+            key_str (str): A string of key presses.
+
+        Returns:
+            List of ints: The elements are ordered according to their
+                order in key_str.  The k'th element is the numerical
+                representation of the k'th key press.
+
+        Format of key_str:
+            key_str must contain only printable ASCII characters except
+            numbers.
+
+            If a key x is modified with a modifier key, then this is
+            written as <Mod-x>.  Valid modifiers are Ctrl and Alt.
+            This must be the last key in the string.  Otherwise, it
+            is interpreted to mean literally pressing each character.
+        """
         key_seq = []
         for idx, key in enumerate(key_str):
             if not self._is_valid_key(key):
@@ -16,7 +45,21 @@ class AniLogKeyParser:
         return key_seq
 
     def _get_special_seq(self, key_str):
-        """ Finds the numerical representation of a special key sequence.
+        """Convert a special key sequence.
+
+        key_str is special if it is of the form <Mod-x>, where Mod is a
+        modifier (Ctrl or Alt), and x is a prinable ASCII character
+        except for numbers.  If key_str is special, then the
+        corresponding key sequence is returned.  Otherwise, an empty
+        list is returned.
+
+        Args:
+            key_str: The string to convert.
+
+        Returns:
+            Empty list: if the string is not special.
+            List of ints: If the string is special.  This is the
+                sequence generated when pressing the keys in key_str.
         """
         ctrl_alt = '<Ctrl-Alt-'
         alt = '<Alt-'
@@ -30,6 +73,7 @@ class AniLogKeyParser:
             modifier = alt
         else:
             return []
+        # The '+ 2' refers to the closing '>' and the key being modified.
         if len(key_str) == len(modifier) + 2:
             modified_key = key_str[-2]
             if (modifier == ctrl) and self._is_ctrl_modifiable(modified_key):
@@ -40,20 +84,57 @@ class AniLogKeyParser:
         return []
 
     def _is_ctrl_modifiable(self, key):
+        """Determine whether or not the key can be used with Ctrl.
+
+        Keys that can be combined with Ctrl are most of the letters of
+        the English alphabet.  Some, such as c and s, are reserved for
+        the system.
+
+        Args:
+            key:  An ASCII character.
+
+        Returns:
+            True: If key is a letter in the English alphabet.
+            False: otherwise.
+        """
         if key.isalpha():
             return True;
 
     def _is_alt_modifiable(self, key):
+        """Determine whether or not the key can be used with Alt.
+
+        Keys that can be used with Alt are all the printable ASCII
+        characters.
+
+        Args:
+            key:  An ASCII character.
+
+        Returns:
+            True: If key is a printable ASCII character.
+            False: otherwise.
+        """
         if self._is_valid_key(key) or key.isdigit():
             return True;
         return False
 
     def _is_valid_key(self, key):
+        """Determine whether or not the key can be mapped.
+
+        Keys that can be mapped are the printable ASCII characters
+        except for numbers.  Any nonempty sequence of valid keys can
+        be mapped.  Most valid keys can be used with modifiers.
+
+        Args:
+            key:  An ASCII character.
+
+        Returns:
+            True: If key is a printable nonnumeric ASCII character.
+            False: otherwise.
+        """
         key_num = ord(key)
         if (32 < key_num < 48) or (57 < key_num < 127):
             return True
         return False
-
 
 
 class KeyMap:

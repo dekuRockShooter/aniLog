@@ -47,6 +47,9 @@ class UI:
         curses.curs_set(1)
         curses.endwin()
 
+    # TODO: no hardcoding.  Also, Alt-q quits the program because key is q.
+    # This would be a problem, but the current while loop conditional is
+    # temporary,.  Fixing this bug right now might actually be a bad thing.
     def get_key(self):
         """Get keys from the user and run a command.
 
@@ -57,12 +60,14 @@ class UI:
         key = 0
         while key != ord('q'):
             key = self._win.getch()
-            if key == 27: # alt
+            if key == 27: # alt or esc
                 # Get a char while pressing Alt.  Otherwise, the char is
                 # gotten after releasing Alt.
                 self._win.nodelay(True)
                 key = self._win.getch()
                 self._win.nodelay(False)
+                if key == -1: # esc
+                    continue
                 try:
                     self._key_map.get_cmd(27)
                     cmd = self._key_map.get_cmd(key)

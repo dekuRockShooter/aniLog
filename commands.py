@@ -191,8 +191,8 @@ class PreviousBrowser(Command):
 class Filter(Command):
     def execute(self):
         cur_status_bar = StatusBarRegistry.get()
-        cur_status_bar.set_str(':filter ')
-        search_term = ' '.join(cur_status_bar.redraw()[1:])
+        args = cur_status_bar.edit(':filter ')[1:]
+        search_term = ' '.join(args)
         cur_browser = BrowserFactory.get_cur()
         col_name = cur_browser.get_col_name()
         browser_name = cur_browser.get_name()

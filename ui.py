@@ -6,6 +6,7 @@ from browser import Browser
 from shared import BrowserFactory, DBRegistry
 from keymap import KeyMap
 
+# TODO: merge in aniLog.py
 class UI:
     """Display all widgets and get keyboard input.
 
@@ -51,12 +52,27 @@ class UI:
 
         Keys are sent to KeyMap's get_cmd method, which returns
         the Command object that corresponds to the current key or
-        keysequence. If the command is valid, then it is executed.
+        keysequence.  If the command is valid, then it is executed.
         """
         key = 0
         while key != ord('q'):
             key = self._win.getch()
-            cmd = self._key_map.get_cmd(key)
+            if key == 27: # alt
+                # Get a char while pressing Alt.  Otherwise, the char is
+                # gotten after releasing Alt.
+                self._win.nodelay(True)
+                key = self._win.getch()
+                self._win.nodelay(False)
+                try:
+                    self._key_map.get_cmd(27)
+                    cmd = self._key_map.get_cmd(key)
+                except KeyError:
+                    cmd = None
+            else:
+                try:
+                    cmd = self._key_map.get_cmd(key)
+                except KeyError:
+                    cmd = None
             if cmd is not None:
                 cmd.execute()
 

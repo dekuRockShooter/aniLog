@@ -1,56 +1,60 @@
 KEY_ALT = 123456789
 
-def get_special_seq(key_str):
-    """ Finds the numerical representation of a special key sequence.
-    """
-    ctrl_alt = '<Ctrl-Alt-'
-    alt = '<Alt-'
-    ctrl = '<Ctrl-'
-    modifier = ''
-    if key_str.startswith(ctrl_alt) and key_str.endswith('>'):
-        modifier = ctrl_alt
-    elif key_str.startswith(ctrl) and key_str.endswith('>'):
-        modifier = ctrl
-    elif key_str.startswith(alt) and key_str.endswith('>'):
-        modifier = alt
-    else:
-        return []
-    if len(key_str) == len(modifier) + 2:
-        modified_key = key_str[-2]
-        if (modifier == ctrl) and is_ctrl_modifiable(modified_key):
-            return [ord(modified_key.lower()) - 96]
-        elif (modifier == alt) and is_alt_modifiable(modified_key):
-            return [KEY_ALT, ord(modified_key)]
-    return []
-
-def is_ctrl_modifiable(key):
-    if key.isalpha():
-        return True;
-
-def is_alt_modifiable(key):
-    if is_valid_key(key) or key.isdigit():
-        return True;
-    return False
-
-def is_valid_key(key):
-    key_num = ord(key)
-    if (32 < key_num < 48) or (57 < key_num < 127):
-        return True
-    return False
-
-def str_to_key_seq(key_str):
-    key_seq = []
-    for idx, key in enumerate(key_str):
-        if not is_valid_key(key):
-            key_seq[:] = []
-            return key_seq
-        elif key == '<':
-            special_seq =get_special_seq(key_str[idx:])
-            if special_seq:
-                key_seq.extend(special_seq)
+class AniLogKeyParser:
+    def __call__(self, key_str):
+        key_seq = []
+        for idx, key in enumerate(key_str):
+            if not self._is_valid_key(key):
+                key_seq[:] = []
                 return key_seq
-        key_seq.append(ord(key))
-    return key_seq
+            elif key == '<':
+                special_seq = self._get_special_seq(key_str[idx:])
+                if special_seq:
+                    key_seq.extend(special_seq)
+                    return key_seq
+            key_seq.append(ord(key))
+        return key_seq
+
+    def _get_special_seq(self, key_str):
+        """ Finds the numerical representation of a special key sequence.
+        """
+        ctrl_alt = '<Ctrl-Alt-'
+        alt = '<Alt-'
+        ctrl = '<Ctrl-'
+        modifier = ''
+        if key_str.startswith(ctrl_alt) and key_str.endswith('>'):
+            modifier = ctrl_alt
+        elif key_str.startswith(ctrl) and key_str.endswith('>'):
+            modifier = ctrl
+        elif key_str.startswith(alt) and key_str.endswith('>'):
+            modifier = alt
+        else:
+            return []
+        if len(key_str) == len(modifier) + 2:
+            modified_key = key_str[-2]
+            if (modifier == ctrl) and self._is_ctrl_modifiable(modified_key):
+                return [ord(modified_key.lower()) - 96]
+            elif (modifier == alt) and self._is_alt_modifiable(modified_key):
+                return [KEY_ALT, ord(modified_key)]
+            # TODO: Add support for Ctrl+Alt
+        return []
+
+    def _is_ctrl_modifiable(self, key):
+        if key.isalpha():
+            return True;
+
+    def _is_alt_modifiable(self, key):
+        if self._is_valid_key(key) or key.isdigit():
+            return True;
+        return False
+
+    def _is_valid_key(self, key):
+        key_num = ord(key)
+        if (32 < key_num < 48) or (57 < key_num < 127):
+            return True
+        return False
+
+
 
 class KeyMap:
     """Map key sequences to commands.
@@ -62,9 +66,20 @@ class KeyMap:
         add_key: Bind a key sequence to a Command object.
         get_cmd: Return the Command bound to a key sequence.
     """
-    def __init__(self):
+    def __init__(self, to_key_seq):
+        """Constructor.
+
+        Args:
+            to_key_seq (Callable): This callable is used to convert
+                a string of keys to a sequence of keys that are
+                added to the map.  It should take a string and return
+                a list.  If the map were a tree, think of the list as
+                being a path, from the root to a leaf, that is inserted
+                to the tree.
+        """
         self._key_map = {}
         self._key_map_explorer = self._key_map
+        self._to_key_seq = to_key_seq
 
     def add_key(self, key_str, cmd):
         """Bind a key sequence to a Command object.
@@ -73,17 +88,27 @@ class KeyMap:
         return the associated Command.
 
         Args:
-            key_str (str): The key sequence.  This is the sequence of
-                keys that lead to cmd.  The keys can be any printable
-                ASCII character except for numbers. <Ctrl-x> and
-                <Alt-x> denote pressing the Control (or Alt) and x at
-                the same time.  If a sequence has a modifier, then
-                it must come at the end (xxx<Ctrl-x> is allowed, but
-                xxx<Ctrl-x>xxx is not).
+            key_str (str): The key sequence as a string.  This is the
+                sequence of keys that lead to cmd.  This is converted
+                to a key sequence (a list of numbers) using the
+                callable given to the constructor.
             cmd (Command): The Command object that is bound to the key
                 sequence.
+
+        Example:
+            What each key is converted to depends on how the callable
+            is implemented.  Here, it just returns their ASCII number.
+
+            # This produces the map:
+            #     (97, None) -> (115, None) -> (100, cmdX)
+            km.add_key('asd', cmdX)
+
+            # This produces the map:
+            #     (97, None) -> (115, None) -> (100, cmdX)
+            #                -> (100, cmdY)
+            km.add_key('ad', cmdY)
         """
-        key_seq = str_to_key_seq(key_str)
+        key_seq = self._to_key_seq(key_str)
         if not key_seq:
             return False
         key_map = self._key_map
@@ -120,7 +145,12 @@ class KeyMap:
                 the sequence.
 
         Example:
+            # km has been initialized with a callable that converts a
+            # string to a list of numbers.
             # c is 99, i is 105, w is 119, ) is 41, G is 71
+            # The contents of the map after the two add_key calls:
+            #     (99, None) -> (105, None) -> (119, cmd1)
+            #                               -> (41, cmd2)
             >>> km.add_key('ciw', 'cmd1')
             >>> km.add_key('ci)', 'cmd2')
 

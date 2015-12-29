@@ -1,4 +1,4 @@
-KEY_ALT = 123456789
+KEY_ALT = 27
 
 
 class AniLogKeyParser:

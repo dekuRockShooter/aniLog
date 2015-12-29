@@ -216,14 +216,17 @@ class KeyMap:
         or invalid sequence was passed.
 
         Args:
-            key_num (int): The numerical representation of a key.
+            key_num: The key's identifier.
 
         Returns:
             A Command object: If key_num completes a sequence that is
                 bounded to a Command (valid sequence).
-            None: If key_num is not next in the current sequence (invalid
-                sequence), or if key_num is next but does not complete
-                the sequence.
+            None: If key_num is next in the sequence, but does not
+                complete it.
+
+        Raises:
+            KeyError: if key_num is not next in the current sequence
+                (invalid sequence).
 
         Example:
             # km has been initialized with a callable that converts a
@@ -243,13 +246,15 @@ class KeyMap:
             >>> print(km.get_cmd(41))
             cmd2
 
-            # Now get the command associated with 'cG' (should be None).
+            # Now get the command associated with 'cG'
+            # (should raise KeyError).
             >>> print(km.get_cmd(99))
             None
             >>> print(km.get_cmd(71))
-            None
+            KeyError: 71
 
-            # Finally, get the command associated with 'ciw' (should be cmd1).
+            # Finally, get the command associated with 'ciw'
+            # (should be cmd1).
             >>> print(km.get_cmd(99))
             None
             >>> print(km.get_cmd(105))
@@ -270,7 +275,7 @@ class KeyMap:
             self._key_map_explorer, cmd = self._key_map_explorer[key_num]
         except KeyError:
             self._key_map_explorer = self._key_map
-            return None
+            raise
         if cmd:
             self._key_map_explorer = self._key_map
         return cmd

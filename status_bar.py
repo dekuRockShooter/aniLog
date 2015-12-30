@@ -23,7 +23,7 @@ class StatusBar:
     CONFIRM = 1
     ERROR = 2
 
-    def __init__(self, scr_top_row, scr_right_col):
+    def __init__(self, scr_top_row, scr_right_col, cmd_map):
         """Constructor.
 
         Define the placement of the status bar.  The status bar always
@@ -32,6 +32,7 @@ class StatusBar:
         Args:
             scr_top_row: The row in the screen to place that bar in.
             scr_right_col: The column in the screen where the bar ends.
+            cmd_map: The map from command names to Command objects.
         """
         curses.initscr()
         curses.noecho()
@@ -40,6 +41,9 @@ class StatusBar:
         self._cur_str = ''
         self._scr_top_row = scr_top_row
         self._scr_right_col = scr_right_col
+        self._last_cmd_name = ''
+        self._last_cmd_args = ''
+        self._cmd_map = cmd_map
 
     # TODO: this seems useless. update is a better fit for what this
     # tries to do.
@@ -89,11 +93,23 @@ class StatusBar:
                 The user is able to edit it.
         """
         self._clear(initial_str)
-        input = self._text_pad.edit().split()
+        curses.curs_set(1)
+        input = self._text_pad.edit().strip()
+        curses.curs_set(0)
+        try:
+            arg_idx= input.index(' ')
+            self._last_cmd_name = input[: arg_idx]
+            self._last_cmd_args = input[arg_idx + 1:]
+        except ValueError:
+            self._last_cmd_name = input
+            self._last_cmd_args = ''
         # TODO: get the command associated with input[0]
         # TODO: get flags
-        self.update()
-        return input
+        try:
+            self._cmd_map[self._last_cmd_name].execute()
+            self.update()
+        except KeyError:
+            self.prompt('That command does not exist.', StatusBar.ERROR)
 
     def prompt(self, prompt_str, mode):
         """Show a message.

@@ -219,7 +219,7 @@ class StatusBarRegistry:
         return StatusBarRegistry._status_bar
 
     @staticmethod
-    def create(scr_top_row, scr_right_col):
+    def create(scr_top_row, scr_right_col, cmd_map):
         """Create the status bar.
 
         The status bar is created if it has not been already.  The
@@ -227,7 +227,7 @@ class StatusBarRegistry:
         """
         if not StatusBarRegistry._status_bar:
             StatusBarRegistry._status_bar =\
-                status_bar.StatusBar(scr_top_row, scr_right_col)
+                status_bar.StatusBar(scr_top_row, scr_right_col, cmd_map)
         return StatusBarRegistry._status_bar
 
     @staticmethod

@@ -19,6 +19,8 @@ class StatusBar:
         create: Setup the status bar.
         update: Redraw the status bar.
         destroy: Close the status bar.
+        get_cmd_name: Return the name of the last command entered.
+        get_cmd_args: Return the arguements of the last command entered.
     """
     CONFIRM = 1
     ERROR = 2
@@ -142,6 +144,14 @@ class StatusBar:
         elif mode == StatusBar.ERROR:
             self._clear('ERROR: {}'.format(prompt_str))
         return ret_str
+
+    def get_cmd_name(self):
+        """Return the name of the last command entered."""
+        return self._last_cmd_name
+
+    def get_cmd_args(self):
+        """Return the arguments of the last command entered."""
+        return self._last_cmd_args
 
     def scroll(self, direction, quantifier=1):
         pass

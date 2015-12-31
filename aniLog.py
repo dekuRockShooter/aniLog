@@ -2,15 +2,19 @@ from ui import UI
 import commands
 import keymap
 import shared
+from status_bar import StatusBar
 
-BROWSER_UPPER_LEFT_COORDS = (0, 0)
-BROWSER_BOTTOM_RIGHT_COORDS = (10, 80)
+STATUS_BAR_POSITION = StatusBar.BOTTOM
+if STATUS_BAR_POSITION == StatusBar.TOP:
+    BROWSER_UPPER_LEFT_COORDS = (1, 0)
+    BROWSER_BOTTOM_RIGHT_COORDS = (13, 80)
+else:
+    BROWSER_UPPER_LEFT_COORDS = (0, 0)
+    BROWSER_BOTTOM_RIGHT_COORDS = (12, 80)
 BROWSER_TOTAL_ROWS = 1024
 BROWSER_TOTAL_COLS = 512
 DEFAULT_DB_NAME = 'Sybil.db'
 COL_WIDTHS = [3,20,4,4,10,10,3,10,20]
-STATUSBAR_ROW_COORD = 14
-STATUSBAR_COL_COORD = 0
 db1 = shared.DBRegistry()
 cmd_map = {
     'filter': commands.Filter('filter',
@@ -40,8 +44,7 @@ b2.create()
 b3.create()
 b1.redraw()
 shared.BrowserFactory.set_cur(0)
-shared.StatusBarRegistry.create(STATUSBAR_ROW_COORD, STATUSBAR_COL_COORD,
-                                cmd_map).update()
+shared.StatusBarRegistry.create(STATUS_BAR_POSITION, cmd_map).update()
 key_map = keymap.KeyMap(keymap.AniLogKeyParser())
 key_map.add_key('k',commands.ScrollUp('scroll_up', 'Scroll one line up.'))
 key_map.add_key('j',commands.ScrollDown('scroll_down',

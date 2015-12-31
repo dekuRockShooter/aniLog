@@ -24,28 +24,48 @@ class StatusBar:
     """
     CONFIRM = 1
     ERROR = 2
+    BOTTOM = 1
+    TOP = 2
 
-    def __init__(self, scr_top_row, scr_right_col, cmd_map):
+    def __init__(self, position, cmd_map):
         """Constructor.
 
         Define the placement of the status bar.  The status bar always
         starts at column zero in the screen.
 
         Args:
-            scr_top_row: The row in the screen to place that bar in.
-            scr_right_col: The column in the screen where the bar ends.
+            position: Where to place the status bar.  Valid values are
+                StatusBar.TOP and StatusBar.BOTTOM for the top and
+                bottom of the screen, respectively.
             cmd_map: The map from command names to Command objects.
         """
         curses.initscr()
         curses.noecho()
-        self._win = curses.newwin(1, 80, scr_top_row, scr_right_col)
+        self._scr_right_col = curses.COLS
+        if position == StatusBar.TOP:
+            self._win = curses.newwin(1, curses.COLS, 0, 0)
+            self._scr_row = 0
+        else:
+            self._win = curses.newwin(1, curses.COLS, curses.LINES - 1, 0)
+            self._scr_row = curses.LINES - 1
         self._text_pad = curses.textpad.Textbox(self._win, insert_mode=True)
         self._cur_str = ''
-        self._scr_top_row = scr_top_row
-        self._scr_right_col = scr_right_col
         self._last_cmd_name = ''
         self._last_cmd_args = ''
         self._cmd_map = cmd_map
+        self._position = position
+
+    def _reposition(self, scr_row, cols):
+        self._scr_right_col = cols
+        if self._position == StatusBar.TOP:
+            return
+        else:
+            if scr_row - 1 != self._scr_row:
+                self._scr_row = scr_row - 1
+                self._win = curses.newwin(1, cols, self._scr_row, 0)
+                self._text_pad = curses.textpad.Textbox(
+                    self._win, insert_mode=True)
+                self.update()
 
     # TODO: this seems useless. update is a better fit for what this
     # tries to do.
@@ -162,3 +182,14 @@ class StatusBar:
         Update the status bar string and show it.
         """
         self.update()
+
+    def on_screen_resize(self, new_rows, new_cols):
+        self._reposition(new_rows, new_cols)
+        #if self._position == StatusBar.TOP:
+            #return
+        #if new_rows != self._scr_row:
+            #self._scr_row = new_rows - 1
+        ## TODO: reformat cur_str
+        #if new_cols != self._scr_right_col:
+            #self._scr_right_col = new_cols
+        #self.update()

@@ -2,6 +2,7 @@ import curses
 import os
 import keymap
 import commands
+import settings
 from browser import Browser
 from shared import BrowserFactory, DBRegistry, StatusBarRegistry
 from keymap import KeyMap
@@ -25,7 +26,6 @@ class UI:
         Args:
             key_map (KeyMap): The keymap to use for the interface.
         """
-        self._cur_browser = BrowserFactory.get_cur()
         self._win = None
         self._key_map = key_map
 
@@ -36,7 +36,6 @@ class UI:
         curses.cbreak()
         curses.noecho()
         curses.curs_set(0)
-        self._cur_browser.create()
 
     def destroy(self):
         """Destroy all object and end curses."""
@@ -96,5 +95,4 @@ class UI:
         changed. It simply redraws the current browser (as indicated by
         BrowserRegistry.get()).
         """
-        self._cur_browser = BrowserFactory.get_cur()
-        self._cur_browser.redraw()
+        BrowserFactory.get_cur().redraw()

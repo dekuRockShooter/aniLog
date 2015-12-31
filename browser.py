@@ -81,10 +81,10 @@ class Browser:
         self._db_name = db_name
         self._table = table
         self.PRIMARY_KEY = Browser.PRIMARY_KEY
-        self._VIS_RNG = (bot_right_coords[0] - upper_left_coords[0],\
-                bot_right_coords[1] - upper_left_coords[1])
+        self._VIS_RNG = [bot_right_coords[0] - upper_left_coords[0],\
+                bot_right_coords[1] - upper_left_coords[1]]
         self._row_count = 0
-        self._SCR_COORDS = [upper_left_coords, bot_right_coords]
+        self._SCR_COORDS = [list(upper_left_coords), list(bot_right_coords)]
         self._END_ROW = 1
         self._BEG_ROW = 0
         self._bot_row = 0
@@ -168,6 +168,8 @@ class Browser:
         self._pad = curses.newpad(self._END_ROW, self._END_COL) # height, width
         self._pad.keypad(1)
         self._pad.leaveok(0)
+        self._scr_cols = curses.COLS
+        self._scr_rows = curses.LINES
 
     def _populate_browser(self, rows):
         """Write rows to the browser.
@@ -284,6 +286,18 @@ class Browser:
         self._row_ids.pop(self._cur_row)
         self._pad.deleteln()
         self._row_count = self._row_count - 1
+        self.redraw()
+
+    def on_screen_resize(self, new_rows, new_cols):
+        if new_rows != self._scr_rows:
+            row_diff = new_rows - self._scr_rows
+            self._SCR_COORDS[1][0] += row_diff
+            self._VIS_RNG[0] += row_diff
+            self._scr_rows += row_diff
+        if new_cols != self._scr_cols:
+            col_diff = new_cols - self._scr_cols
+            self._SCR_COORDS[1][1] += col_diff
+            self._VIS_RNG[1] += col_diff
         self.redraw()
 
     def get_cur_cell(self):

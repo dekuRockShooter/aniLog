@@ -17,6 +17,7 @@
         PreviousBrowser: switch to the previous browser.
         Filter: Show entries that match a search term.
         Sort: Sort the entries.
+        Write: Write a string to the command line.
 """
 import curses
 import status_bar
@@ -72,22 +73,29 @@ class ScrollRight(Command):
 
 class EditCell(Command):
     def execute(self):
+        stat_bar = StatusBarRegistry.get()
+        args = stat_bar.get_cmd_args()
+        new_val = ''
+        if not args:
+            stat_bar.prompt('Usage: edit primary_key_val new_cell_value',
+                              status_bar.StatusBar.ERROR)
+            return
+        try:
+            sep_idx = args.index(' ')
+            new_val = args[sep_idx + 1:]
+        except ValueError:
+            sep_idx = len(args)
+        prim_key = args[: sep_idx]
         cur_browser = BrowserFactory.get_cur()
-        cur_status_bar = StatusBarRegistry.get()
-        cur_value = str(cur_browser.get_cur_cell())
-        cmd = cur_status_bar.edit(cur_value)
-        new_value = ' '.join(cmd)
-        browser_name = cur_browser.get_name()
-        db_name = browser_name[: browser_name.rfind('.')]
-        table_name = browser_name[browser_name.rfind('.') + 1:]
+        db_name = cur_browser.get_db_name()
         cur_db = DBRegistry.get_db(db_name)
         s = 'update "{table}" set "{col_name}"="{value}"\
-                where "{primary_key}"="{id}"'.format(\
-                table=table_name,\
-                col_name=cur_browser.get_col_name(),\
-                value=new_value,\
-                primary_key=cur_browser.PRIMARY_KEY,\
-                id=cur_browser.get_prim_key())
+                where "{primary_key}"="{id}"'.format(
+                table=cur_browser.get_table_name(),
+                col_name=cur_browser.get_col_name(),
+                value=new_val,
+                primary_key=cur_browser.PRIMARY_KEY,
+                id=prim_key)
         cur_db.execute(s)
         cur_db.commit()
         cur_browser.on_entry_updated()
@@ -96,9 +104,8 @@ class EditCell(Command):
 class NewEntry(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
-        browser_name = cur_browser.get_name()
-        db_name = browser_name[: browser_name.rfind('.')]
-        table_name = browser_name[browser_name.rfind('.') + 1:]
+        db_name = cur_browser.get_db_name()
+        table_name = cur_browser.get_table_name()
         cur_db = DBRegistry.get_db(db_name)
         s = 'insert into "{table}" default values'.format(table=table_name)
         cur_db.execute(s)
@@ -108,20 +115,24 @@ class NewEntry(Command):
 
 class DeleteEntry(Command):
     def execute(self):
-        cur_status_bar = StatusBarRegistry.get()
-        reply = cur_status_bar.prompt('Confirm deletion (y/n): ',
+        stat_bar = StatusBarRegistry.get()
+        args = stat_bar.get_cmd_args()
+        if not args:
+            stat_bar.prompt('Usage: del_entry primary_key_val',
+                            status_bar.StatusBar.ERROR)
+            return
+        reply = stat_bar.prompt('Confirm deletion (y/n): ',
                                       status_bar.StatusBar.CONFIRM)
         if reply == ord('n'):
             return
         cur_browser = BrowserFactory.get_cur()
-        browser_name = cur_browser.get_name()
-        db_name = browser_name[: browser_name.rfind('.')]
-        table_name = browser_name[browser_name.rfind('.') + 1:]
+        db_name = cur_browser.get_db_name()
+        table_name = cur_browser.get_table_name()
         cur_db = DBRegistry.get_db(db_name)
-        s = 'delete from "{table}" where "{prim_key}"="{val}"'.format(\
+        s = 'delete from "{table}" where "{prim_key}"="{val}"'.format(
                 table=table_name,
                 prim_key=cur_browser.PRIMARY_KEY,
-                val=cur_browser.get_prim_key())
+                val=args)
         cur_db.execute(s)
         cur_db.commit()
         cur_browser.on_entry_deleted()
@@ -130,11 +141,10 @@ class DeleteEntry(Command):
 class CopyEntry(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
-        browser_name = cur_browser.get_name()
-        db_name = browser_name[: browser_name.rfind('.')]
-        table_name = browser_name[browser_name.rfind('.') + 1:]
+        db_name = cur_browser.get_db_name()
+        table_name = cur_browser.get_table_name()
         cur_db = DBRegistry.get_db(db_name)
-        s = 'select * from "{table}" where "{prim_key}"="{val}"'.format(\
+        s = 'select * from "{table}" where "{prim_key}"="{val}"'.format(
                 table=table_name,
                 prim_key=cur_browser.PRIMARY_KEY,
                 val=cur_browser.get_prim_key())
@@ -142,6 +152,7 @@ class CopyEntry(Command):
         row[0] = 'null' # for autoincrementing the rowid
         for idx, val in enumerate(row[1:], 1):
             val = str(val)
+            # Make entries that have spaces work properly when pasting.
             if val.startswith('"') and val.endswith('"'):
                 continue
             row[idx] = '{}{}{}'.format('"', val, '"')
@@ -151,12 +162,11 @@ class CopyEntry(Command):
 class PasteEntry(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
-        browser_name = cur_browser.get_name()
-        db_name = browser_name[: browser_name.rfind('.')]
-        table_name = browser_name[browser_name.rfind('.') + 1:]
+        db_name = cur_browser.get_db_name()
+        table_name = cur_browser.get_table_name()
         cur_db = DBRegistry.get_db(db_name)
         row = ','.join(CopyBuffer.get(CopyBuffer.DEFAULT_KEY))
-        s = 'insert into "{table}" values ({val})'.format(\
+        s = 'insert into "{table}" values ({val})'.format(
                 table=table_name,
                 val=str(row))
         cur_db.execute(s)
@@ -191,18 +201,16 @@ class PreviousBrowser(Command):
 class Filter(Command):
     def execute(self):
         cur_status_bar = StatusBarRegistry.get()
-        args = cur_status_bar.edit(':filter ')[1:]
-        search_term = ' '.join(args)
+        arg = cur_status_bar.get_cmd_args()
         cur_browser = BrowserFactory.get_cur()
         col_name = cur_browser.get_col_name()
-        browser_name = cur_browser.get_name()
-        db_name = browser_name[: browser_name.rfind('.')]
-        table_name = browser_name[browser_name.rfind('.') + 1:]
+        db_name = cur_browser.get_db_name()
+        table_name = cur_browser.get_table_name()
         cur_db = DBRegistry.get_db(db_name)
-        s = 'select * from "{table}" where "{col_name}" like \'%{val}%\''.format(\
-                table=table_name,
-                col_name=col_name,
-                val=search_term)
+        s = 'select * from "{table}" where "{col_name}" like \'%{val}%\''.\
+                format(table=table_name,
+                       col_name=col_name,
+                       val=arg)
         cur_browser.on_new_query(cur_db.execute(s))
 
 
@@ -212,17 +220,99 @@ class Sort(Command):
 
     def __init__(self, name, desc, quantifier=1, direction=None, **kwargs):
         super(Sort, self).__init__(name, desc, quantifier, **kwargs)
-        self._direction = direction or Sort.ASC
+        self._direction = direction
 
+    # TODO: This is a little more complicated than it should be.  A possibly
+    # better implementation would be to remove the static variables ASC and
+    # DES and just have then be command line arguments.  The code would be
+    # much easier to follow.
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
-        col_name = cur_browser.get_col_name()
-        browser_name = cur_browser.get_name()
-        db_name = browser_name[: browser_name.rfind('.')]
-        table_name = browser_name[browser_name.rfind('.') + 1:]
+        db_name = cur_browser.get_db_name()
+        table_name = cur_browser.get_table_name()
         cur_db = DBRegistry.get_db(db_name)
-        s = 'select * from "{table}" order by "{col_name}" {dir}'.format(\
+        col_name = ''
+        direction = self._direction
+        if self._direction is None:
+            stat_bar = StatusBarRegistry.get()
+            args = stat_bar.get_cmd_args()
+            try:
+                sep_idx = args.index(' ')
+            except ValueError:
+                sep_idx = len(args)
+            direction = args[: sep_idx]
+            if direction not in (Sort.ASC, Sort.DES):
+                stat_bar.prompt('Usage: sort asc|desc [column_name]',
+                                status_bar.StatusBar.ERROR)
+                return
+            col_name = args[sep_idx + 1:]
+        if not col_name:
+            col_name = cur_browser.get_col_name()
+        s = 'select * from "{table}" order by "{col_name}" {dir}'.format(
                 table=table_name,
                 col_name=col_name,
-                dir=self._direction)
+                dir=direction)
         cur_browser.on_new_query(cur_db.execute(s))
+
+
+class Write(Command):
+    """Write a string to the command line.
+
+    This is a command to write a string to the command line so that
+    it can be edited and run.  The string can consist of macros that
+    allow easy access to helpful information that can be used as
+    arguments to commands.
+    """
+    def __init__(self, cmd_str, name, desc, quantifier=1, **kwargs):
+        """Constructor.
+
+        Args:
+            cmd_str: The string to write to the command line.  It
+                contains characters and macros.
+
+        Macros:
+            %p: the primary key value of the current entry.
+            %c: the name of the current column.
+            %v: the value of the current cell.
+            %%: a literal '%'.
+        """
+        super(Write, self).__init__(name, desc, quantifier, **kwargs)
+        self._cmd_str = cmd_str
+
+    def execute(self):
+        stat_bar = StatusBarRegistry.get()
+        try:
+            cmd_str = self._expand(self._cmd_str)
+        except ValueError as err:
+            stat_bar.prompt(str(err), status_bar.StatusBar.ERROR)
+            return
+        stat_bar.edit(cmd_str)
+
+    def _expand(self, cmd_str):
+        """Expand all the macros.
+
+        Raises:
+            ValueError: if cmd_str contains invalid macros.
+        """
+        browser = BrowserFactory.get_cur()
+        possible_macro = False
+        expanded_str = []
+        for letter in cmd_str:
+            if possible_macro:
+                if letter == 'p':
+                    letter = str(browser.get_prim_key())
+                elif letter == 'c':
+                    letter = browser.get_col_name()
+                elif letter == 'v':
+                    letter = str(browser.get_cur_cell())
+                elif letter == '%':
+                    pass
+                else:
+                    raise ValueError('Unknown macro: %{}'.format(letter))
+                expanded_str.append(letter)
+                possible_macro = False
+            elif letter == '%':
+                possible_macro = True
+            else:
+                expanded_str.append(letter)
+        return ''.join(expanded_str)

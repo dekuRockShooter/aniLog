@@ -3,7 +3,7 @@ import os
 import keymap
 import commands
 from browser import Browser
-from shared import BrowserFactory, DBRegistry
+from shared import BrowserFactory, DBRegistry, StatusBarRegistry
 from keymap import KeyMap
 
 # TODO: merge in aniLog.py
@@ -58,6 +58,7 @@ class UI:
         keysequence.  If the command is valid, then it is executed.
         """
         key = 0
+        cmd = None
         while key != ord('q'):
             key = self._win.getch()
             if key == 27: # alt or esc
@@ -73,6 +74,13 @@ class UI:
                     cmd = self._key_map.get_cmd(key)
                 except KeyError:
                     cmd = None
+            elif key == curses.KEY_RESIZE:
+                curses.update_lines_cols()
+                BrowserFactory.get_cur().on_screen_resize(
+                        curses.LINES, curses.COLS)
+                StatusBarRegistry.get().on_screen_resize(
+                        curses.LINES, curses.COLS)
+                continue
             else:
                 try:
                     cmd = self._key_map.get_cmd(key)

@@ -1,6 +1,7 @@
 import math
 import curses
 import shared
+import settings
 
 class Coordinates:
     def __init__(self, beg=0, end=0, sep=0):
@@ -81,13 +82,16 @@ class Browser:
         self._db_name = db_name
         self._table = table
         self.PRIMARY_KEY = Browser.PRIMARY_KEY
-        self._VIS_RNG = [bot_right_coords[0] - upper_left_coords[0],\
-                bot_right_coords[1] - upper_left_coords[1]]
+        self._VIS_RNG = [settings.BROWSER_BOTTOM_RIGHT_COORDS[0] -
+                             settings.BROWSER_UPPER_LEFT_COORDS[0],
+                         settings.BROWSER_BOTTOM_RIGHT_COORDS[1] -
+                             settings.BROWSER_UPPER_LEFT_COORDS[1]]
         self._row_count = 0
-        self._SCR_COORDS = [list(upper_left_coords), list(bot_right_coords)]
-        self._END_ROW = 1
+        self._SCR_COORDS = [settings.BROWSER_UPPER_LEFT_COORDS,
+                            settings.BROWSER_BOTTOM_RIGHT_COORDS]
+        self._END_ROW = 1 # The last row in the pad.
         self._BEG_ROW = 0
-        self._bot_row = 0
+        self._bot_row = 0 # The last row in the pad that is visible.
         self._top_row = self._VIS_RNG[0] # TODO: this should be bot_row
 
         self._END_COL = int(sum(col_widths) + 2*len(col_widths))
@@ -288,16 +292,14 @@ class Browser:
         self._row_count = self._row_count - 1
         self.redraw()
 
-    def on_screen_resize(self, new_rows, new_cols):
-        if new_rows != self._scr_rows:
-            row_diff = new_rows - self._scr_rows
-            self._SCR_COORDS[1][0] += row_diff
-            self._VIS_RNG[0] += row_diff
-            self._scr_rows += row_diff
-        if new_cols != self._scr_cols:
-            col_diff = new_cols - self._scr_cols
-            self._SCR_COORDS[1][1] += col_diff
-            self._VIS_RNG[1] += col_diff
+    def on_screen_resize(self):
+        self._VIS_RNG = [settings.BROWSER_BOTTOM_RIGHT_COORDS[0] -
+                             settings.BROWSER_UPPER_LEFT_COORDS[0],
+                         settings.BROWSER_BOTTOM_RIGHT_COORDS[1] -
+                             settings.BROWSER_UPPER_LEFT_COORDS[1]]
+        self._SCR_COORDS = [settings.BROWSER_UPPER_LEFT_COORDS,
+                            settings.BROWSER_BOTTOM_RIGHT_COORDS]
+        self._top_row = self._VIS_RNG[0] # TODO: this should be bot_row
         self.redraw()
 
     def get_cur_cell(self):

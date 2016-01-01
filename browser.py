@@ -308,8 +308,10 @@ class Browser(signals.Observer):
         self._SCR_COORDS = [settings.BROWSER_UPPER_LEFT_COORDS,
                             settings.BROWSER_BOTTOM_RIGHT_COORDS]
         self._top_row = self._VIS_RNG[0] # TODO: this should be bot_row
+        self._right_col = self._VIS_RNG[1]
         self.redraw()
 
+    # TODO: maybe move this to a method in DBConnection.
     def get_cur_cell(self):
         """Return the value of the currently selected cell.
 

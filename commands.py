@@ -19,8 +19,7 @@
         Sort: Sort the entries.
         Write: Write a string to the command line.
 """
-import curses
-import status_bar
+from status_bar import StatusBar
 from browser import Browser
 from shared import BrowserFactory, StatusBarRegistry, DBRegistry, CopyBuffer,\
         UIRegistry
@@ -78,7 +77,7 @@ class EditCell(Command):
         new_val = ''
         if not args:
             stat_bar.prompt('Usage: edit primary_key_val new_cell_value',
-                              status_bar.StatusBar.ERROR)
+                              StatusBar.ERROR)
             return
         try:
             sep_idx = args.index(' ')
@@ -119,10 +118,10 @@ class DeleteEntry(Command):
         args = stat_bar.get_cmd_args()
         if not args:
             stat_bar.prompt('Usage: del_entry primary_key_val',
-                            status_bar.StatusBar.ERROR)
+                            StatusBar.ERROR)
             return
         reply = stat_bar.prompt('Confirm deletion (y/n): ',
-                                      status_bar.StatusBar.CONFIRM)
+                                      StatusBar.CONFIRM)
         if reply == ord('n'):
             return
         cur_browser = BrowserFactory.get_cur()
@@ -200,8 +199,8 @@ class PreviousBrowser(Command):
 
 class Filter(Command):
     def execute(self):
-        cur_status_bar = StatusBarRegistry.get()
-        arg = cur_status_bar.get_cmd_args()
+        stat_bar = StatusBarRegistry.get()
+        arg = stat_bar.get_cmd_args()
         cur_browser = BrowserFactory.get_cur()
         col_name = cur_browser.get_col_name()
         db_name = cur_browser.get_db_name()
@@ -243,7 +242,7 @@ class Sort(Command):
             direction = args[: sep_idx]
             if direction not in (Sort.ASC, Sort.DES):
                 stat_bar.prompt('Usage: sort asc|desc [column_name]',
-                                status_bar.StatusBar.ERROR)
+                                StatusBar.ERROR)
                 return
             col_name = args[sep_idx + 1:]
         if not col_name:
@@ -284,7 +283,7 @@ class Write(Command):
         try:
             cmd_str = self._expand(self._cmd_str)
         except ValueError as err:
-            stat_bar.prompt(str(err), status_bar.StatusBar.ERROR)
+            stat_bar.prompt(str(err), StatusBar.ERROR)
             return
         stat_bar.edit(cmd_str)
 

@@ -1,11 +1,12 @@
 import curses
 import os
 import settings
+import signals
 from browser import Browser
 from shared import BrowserFactory, DBRegistry, StatusBarRegistry
 
 # TODO: merge in aniLog.py
-class UI:
+class UI(signals.Subject, signals.Observer):
     """Display all widgets and get keyboard input.
 
     This class starts curses and displays all of the widgets. It
@@ -23,8 +24,12 @@ class UI:
         Args:
             key_map (KeyMap): The keymap to use for the interface.
         """
+        signals.Subject.__init__(self)
+        signals.Observer.__init__(self)
         self._win = None
         self._key_map = key_map
+        settings.cmd_map['next_browser'].register(self)
+        settings.cmd_map['prev_browser'].register(self)
 
     def create(self):
         """Start curses and create the user interface."""
@@ -109,8 +114,7 @@ class UI:
                     cmd = None
             elif key == curses.KEY_RESIZE:
                 self._set_coords()
-                BrowserFactory.get_cur().on_screen_resize()
-                StatusBarRegistry.get().on_screen_resize()
+                self.emit(signals.Signal.SCREEN_RESIZED)
                 continue
             else:
                 try:
@@ -128,3 +132,7 @@ class UI:
         BrowserRegistry.get()).
         """
         BrowserFactory.get_cur().redraw()
+
+    def receive_signal(self, signal, args):
+        if signal == signals.Signal.BROWSER_SWITCHED:
+            self.on_browser_switch()

@@ -19,6 +19,7 @@
         Sort: Sort the entries.
         Write: Write a string to the command line.
 """
+import signals
 from status_bar import StatusBar
 from browser import Browser
 from shared import BrowserFactory, StatusBarRegistry, DBRegistry, CopyBuffer,\
@@ -70,7 +71,11 @@ class ScrollRight(Command):
         cur_browser.scroll(Browser.RIGHT, self._quantifier)
 
 
-class EditCell(Command):
+class EditCell(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
     def execute(self):
         stat_bar = StatusBarRegistry.get()
         args = stat_bar.get_cmd_args()
@@ -97,10 +102,15 @@ class EditCell(Command):
                 id=prim_key)
         cur_db.execute(s)
         cur_db.commit()
+        self.emit(signals.Signal.ENTRY_UPDATED)
         cur_browser.on_entry_updated()
 
 
-class NewEntry(Command):
+class NewEntry(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
         db_name = cur_browser.get_db_name()
@@ -109,10 +119,14 @@ class NewEntry(Command):
         s = 'insert into "{table}" default values'.format(table=table_name)
         cur_db.execute(s)
         cur_db.commit()
-        cur_browser.on_entry_inserted()
+        self.emit(signals.Signal.ENTRY_INSERTED)
 
 
-class DeleteEntry(Command):
+class DeleteEntry(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
     def execute(self):
         stat_bar = StatusBarRegistry.get()
         args = stat_bar.get_cmd_args()
@@ -134,7 +148,7 @@ class DeleteEntry(Command):
                 val=args)
         cur_db.execute(s)
         cur_db.commit()
-        cur_browser.on_entry_deleted()
+        self.emit(signals.Signal.ENTRY_DELETED)
 
 
 class CopyEntry(Command):
@@ -173,18 +187,25 @@ class PasteEntry(Command):
         cur_browser.on_entry_inserted()
 
 
-class NextBrowser(Command):
+class NextBrowser(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
     def execute(self):
         cur_idx = BrowserFactory.get_cur_idx()
         try:
             BrowserFactory.set_cur(cur_idx + 1)
         except IndexError:
             BrowserFactory.set_cur(0)
-        UIRegistry.get().on_browser_switch()
-        StatusBarRegistry.get().on_browser_switch()
+        self.emit(signals.Signal.BROWSER_SWITCHED)
 
 
-class PreviousBrowser(Command):
+class PreviousBrowser(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
     def execute(self):
         cur_idx = BrowserFactory.get_cur_idx()
         try:
@@ -193,11 +214,14 @@ class PreviousBrowser(Command):
             BrowserFactory.set_cur(cur_idx - 1)
         except IndexError:
             BrowserFactory.set_cur(BrowserFactory.get_count() - 1)
-        UIRegistry.get().on_browser_switch()
-        StatusBarRegistry.get().on_browser_switch()
+        self.emit(signals.Signal.BROWSER_SWITCHED)
 
 
-class Filter(Command):
+class Filter(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
     def execute(self):
         stat_bar = StatusBarRegistry.get()
         arg = stat_bar.get_cmd_args()
@@ -210,15 +234,17 @@ class Filter(Command):
                 format(table=table_name,
                        col_name=col_name,
                        val=arg)
-        cur_browser.on_new_query(cur_db.execute(s))
+        rows = cur_db.execute(s)
+        self.emit(signals.Signal.NEW_QUERY, rows)
 
 
-class Sort(Command):
+class Sort(Command, signals.Subject):
     ASC='asc'
     DES='desc'
 
     def __init__(self, name, desc, quantifier=1, direction=None, **kwargs):
-        super(Sort, self).__init__(name, desc, quantifier, **kwargs)
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
         self._direction = direction
 
     # TODO: This is a little more complicated than it should be.  A possibly
@@ -251,7 +277,8 @@ class Sort(Command):
                 table=table_name,
                 col_name=col_name,
                 dir=direction)
-        cur_browser.on_new_query(cur_db.execute(s))
+        rows = cur_db.execute(s)
+        self.emit(signals.Signal.NEW_QUERY, rows)
 
 
 class Write(Command):

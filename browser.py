@@ -2,6 +2,7 @@ import math
 import curses
 import shared
 import settings
+import signals
 
 class Coordinates:
     def __init__(self, beg=0, end=0, sep=0):
@@ -9,7 +10,7 @@ class Coordinates:
         self.end = end
         self.sep = sep
 
-class Browser:
+class Browser(signals.Observer):
     """A widget that allows interaction with a database table.
 
         Class variables:
@@ -105,6 +106,13 @@ class Browser:
         self._set_col_coords(col_widths)
 
         self._pad = None
+
+        shared.UIRegistry.get().register(self)
+        settings.cmd_map['edit'].register(self)
+        settings.cmd_map['new_entry'].register(self)
+        settings.cmd_map['del_entry'].register(self)
+        settings.cmd_map['sort'].register(self)
+        settings.cmd_map['filter'].register(self)
 
     # TODO: Don't hardcode the beginning of the first column. It wont
     # necessarily be zero. Also, account for zero widths.
@@ -339,6 +347,19 @@ class Browser:
     def get_col_name(self):
         """Return the column name of the current cell."""
         return self._col_names[self._cur_col]
+
+    def receive_signal(self, signal, args=None):
+        if signal is signals.Signal.SCREEN_RESIZED:
+            self.on_screen_resize()
+        elif signal is signals.Signal.ENTRY_INSERTED:
+            self.on_entry_inserted()
+        elif signal is signals.Signal.ENTRY_DELETED:
+            self.on_entry_deleted()
+        elif signal is signals.Signal.ENTRY_UPDATED:
+            self.on_entry_updated()
+        elif signal is signals.Signal.NEW_QUERY:
+            if shared.BrowserFactory.get_cur() is self:
+                self.on_new_query(args)
 
     def scroll(self, direction, quantifier=1):
         prev_cell_coords = self._col_coords[self._cur_col]

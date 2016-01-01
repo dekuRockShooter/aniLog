@@ -1,10 +1,12 @@
 import curses
 import curses.textpad
+import shared
 import settings
+import signals
 from shared import BrowserFactory
 
 # TODO: no hard coding
-class StatusBar:
+class StatusBar(signals.Observer):
     """Display information or enter commands.
 
     The status bar shows information about the program's current state.
@@ -48,6 +50,9 @@ class StatusBar:
         self._last_cmd_name = ''
         self._last_cmd_args = ''
         self._cmd_map = cmd_map
+        shared.UIRegistry.get().register(self)
+        settings.cmd_map['next_browser'].register(self)
+        settings.cmd_map['prev_browser'].register(self)
 
     def _reposition(self, scr_row, cols):
         if settings.STATUS_BAR_POSITION == settings.SCREEN_TOP:
@@ -174,6 +179,7 @@ class StatusBar:
         Update the status bar string and show it.
         """
         self.update()
+        self._win.refresh()
 
     def on_screen_resize(self):
         if settings.STATUS_BAR_POSITION == settings.SCREEN_TOP:
@@ -184,6 +190,12 @@ class StatusBar:
             self._win = curses.newwin(1, curses.COLS - 1, self._scr_row, 0)
             self._text_pad = curses.textpad.Textbox(self._win, insert_mode=True)
             self.update()
+
+    def receive_signal(self, signal, args):
+        if signal is signals.Signal.SCREEN_RESIZED:
+            self.on_screen_resize()
+        elif signal is signals.Signal.BROWSER_SWITCHED:
+            self.on_browser_switch()
 
 
 if __name__ == '__main__':

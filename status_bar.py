@@ -1,6 +1,7 @@
 import curses
 import curses.textpad
-import shared
+import settings
+from shared import BrowserFactory
 
 # TODO: no hard coding
 class StatusBar:
@@ -24,8 +25,6 @@ class StatusBar:
     """
     CONFIRM = 1
     ERROR = 2
-    BOTTOM = 1
-    TOP = 2
 
     def __init__(self, position, cmd_map):
         """Constructor.
@@ -42,30 +41,23 @@ class StatusBar:
         curses.initscr()
         curses.noecho()
         self._scr_right_col = curses.COLS
-        if position == StatusBar.TOP:
-            self._win = curses.newwin(1, curses.COLS, 0, 0)
-            self._scr_row = 0
-        else:
-            self._win = curses.newwin(1, curses.COLS, curses.LINES - 1, 0)
-            self._scr_row = curses.LINES - 1
+        self._scr_row = settings.STATUS_BAR_COORDS[0]
+        self._win = curses.newwin(1, curses.COLS - 1, self._scr_row, 0)
         self._text_pad = curses.textpad.Textbox(self._win, insert_mode=True)
         self._cur_str = ''
         self._last_cmd_name = ''
         self._last_cmd_args = ''
         self._cmd_map = cmd_map
-        self._position = position
 
     def _reposition(self, scr_row, cols):
-        self._scr_right_col = cols
-        if self._position == StatusBar.TOP:
+        if settings.STATUS_BAR_POSITION == settings.SCREEN_TOP:
             return
         else:
-            if scr_row - 1 != self._scr_row:
-                self._scr_row = scr_row - 1
-                self._win = curses.newwin(1, cols, self._scr_row, 0)
-                self._text_pad = curses.textpad.Textbox(
-                    self._win, insert_mode=True)
-                self.update()
+            self._scr_right_col = curses.COLS
+            self._scr_row = settings.STATUS_BAR_COORDS[0]
+            self._win = curses.newwin(1, curses.COLS - 1, self._scr_row, 0)
+            self._text_pad = curses.textpad.Textbox(self._win, insert_mode=True)
+            self.update()
 
     # TODO: this seems useless. update is a better fit for what this
     # tries to do.
@@ -74,10 +66,10 @@ class StatusBar:
 
         This method updates the string to be displayed in the status bar.
         """
-        cur_browser = shared.BrowserFactory.get_cur()
+        cur_browser = BrowserFactory.get_cur()
         name = cur_browser.get_name()
-        idx = shared.BrowserFactory.get_cur_idx() + 1
-        browser_count = shared.BrowserFactory.get_count()
+        idx = BrowserFactory.get_cur_idx() + 1
+        browser_count = BrowserFactory.get_count()
         self._cur_str = '{}:{}/{}'.format(name, idx, browser_count)
 
     def update(self):
@@ -183,13 +175,16 @@ class StatusBar:
         """
         self.update()
 
-    def on_screen_resize(self, new_rows, new_cols):
-        self._reposition(new_rows, new_cols)
-        #if self._position == StatusBar.TOP:
-            #return
-        #if new_rows != self._scr_row:
-            #self._scr_row = new_rows - 1
-        ## TODO: reformat cur_str
-        #if new_cols != self._scr_right_col:
-            #self._scr_right_col = new_cols
-        #self.update()
+    def on_screen_resize(self):
+        if settings.STATUS_BAR_POSITION == settings.SCREEN_TOP:
+            return
+        else:
+            self._scr_right_col = curses.COLS
+            self._scr_row = settings.STATUS_BAR_COORDS[0]
+            self._win = curses.newwin(1, curses.COLS - 1, self._scr_row, 0)
+            self._text_pad = curses.textpad.Textbox(self._win, insert_mode=True)
+            self.update()
+
+
+if __name__ == '__main__':
+    print('Not a script.')

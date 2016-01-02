@@ -14,10 +14,6 @@ Classes:
 """
 #cls class method
 import db
-#import browser
-import status_bar
-
-
 
 
 class DBRegistry:

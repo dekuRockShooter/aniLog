@@ -73,15 +73,27 @@ class Browser(signals.Observer):
     PRIMARY_KEY = 'rowid'
 
     def __init__(self, db_name, table):
+        """Constructor.
+
+        Raises;
+            FileNotFoundError: If the database does not exist.
+            ValueError: If 'table' does not exist in the database.
+        """
         col_widths = positions.COL_WIDTHS
         try:
             self._db = shared.DBRegistry.get_db(db_name)
         except KeyError:
-            shared.DBRegistry.create(db_name)
-            self._db = shared.DBRegistry.get_db(db_name)
+            self._db = shared.DBRegistry.create(db_name)
+        try:
             self._db.connect()
-        self._row_ids = []
+        except FileNotFoundError:
+            shared.DBRegistry.destroy(db_name)
+            raise
+        if (table,) not in self._db.get_tables():
+            raise ValueError('{db} has no table {table}.'.format(
+                db=db_name, table=table))
         self._col_names = self._db.get_col_names(table)
+        self._row_ids = []
         self._db_name = db_name
         self._table = table
         self.PRIMARY_KEY = Browser.PRIMARY_KEY

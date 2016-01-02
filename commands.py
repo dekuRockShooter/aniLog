@@ -232,7 +232,14 @@ class NewBrowser(Command, signals.Subject):
         except ValueError as err:
             stat_bar.prompt(str(err), enums.Prompt.ERROR)
             return
-        brw = browser.BrowserRegistry.create(db_name, table_name)
+        try:
+            brw = browser.BrowserRegistry.create(db_name, table_name)
+        except FileNotFoundError as err:
+            stat_bar.prompt(str(err), enums.Prompt.ERROR)
+            return
+        except ValueError as err:
+            stat_bar.prompt(str(err), enums.Prompt.ERROR)
+            return
         brw.create()
 
     def _parse(self, args):

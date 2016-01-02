@@ -44,19 +44,20 @@ class UI(signals.Observer):
         self._create_widgets()
 
     def _create_widgets(self):
-        tables = [('watching'), ('backlog'), ('completed')]
-        b1 = browser.BrowserRegistry.create(
-                positions.DEFAULT_DB_NAME,
-                tables[0])
-        b2 = browser.BrowserRegistry.create(
-                positions.DEFAULT_DB_NAME,
-                tables[1])
-        b3 = browser.BrowserRegistry.create(
-                positions.DEFAULT_DB_NAME,
-                tables[2])
-        b1.create()
-        b2.create()
-        b3.create()
+        #status_bar.StatusBarRegistry.create(1, settings.keys.cmd_map).update()
+        tables = [('Watching'), ('backlog'), ('completed')]
+        for table in tables:
+            try:
+                b = browser.BrowserRegistry.create(
+                       positions.DEFAULT_DB_NAME,
+                       table)
+            except FileNotFoundError as err:
+                #stat_bar.prompt(str(err), enums.Prompt.ERROR)
+                continue
+            except ValueError as err:
+                #stat_bar.prompt(str(err), enums.Prompt.ERROR)
+                continue
+            b.create()
         status_bar.StatusBarRegistry.create(1, settings.keys.cmd_map).update()
 
     def _set_coords(self):

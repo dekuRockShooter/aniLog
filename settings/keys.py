@@ -11,6 +11,7 @@ cmd_map = {
     'next_browser': commands.NextBrowser('del_entry', 'Delete an entry.'),
     'prev_browser': commands.PreviousBrowser('del_entry', 'Delete an entry.'),
     'resize': commands.Resize('resize', 'Delete an entry.'),
+    'new_browser': commands.NewBrowser('', ''),
     }
 key_map = keymap.KeyMap(keymap.AniLogKeyParser())
 # Command settings

@@ -219,6 +219,41 @@ class PreviousBrowser(Command, signals.Subject):
         self.emit(signals.Signal.BROWSER_SWITCHED)
 
 
+class NewBrowser(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
+    def execute(self):
+        stat_bar = status_bar.StatusBarRegistry.get()
+        args = stat_bar.get_cmd_args()
+        try:
+            db_name, table_name = self._parse(args)
+        except ValueError as err:
+            stat_bar.prompt(str(err), enums.Prompt.ERROR)
+            return
+        brw = browser.BrowserRegistry.create(db_name, table_name)
+        brw.create()
+
+    def _parse(self, args):
+        stat_bar = status_bar.StatusBarRegistry.get()
+        arg_list = args.split()
+        if len(arg_list) < 2:
+            raise ValueError('Usage: db_name table_name')
+        # db name and table name contain no spaces.
+        if len(arg_list) == 2:
+            return arg_list
+        # at least one arg is enclosed in quotes.
+        sep_idx = args.find('"', 1)
+        if sep_idx  == -1:
+            raise ValueError('Names with spaces go in quotes.')
+        if args[sep_idx + 1] == ' ':
+            sep_idx = sep_idx + 1
+        elif args[sep_idx - 1] != ' ':
+            raise ValueError('Usage: db_name table_name')
+        return [args[: sep_idx], args[sep_idx:].strip()]
+
+
 class Filter(Command, signals.Subject):
     def __init__(self, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)

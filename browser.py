@@ -1,7 +1,9 @@
 import math
 import curses
+import enums
 import shared
-import settings
+import settings.positions as positions
+import settings.keys
 import signals
 
 class Coordinates:
@@ -83,13 +85,13 @@ class Browser(signals.Observer):
         self._db_name = db_name
         self._table = table
         self.PRIMARY_KEY = Browser.PRIMARY_KEY
-        self._VIS_RNG = [settings.BROWSER_BOTTOM_RIGHT_COORDS[0] -
-                             settings.BROWSER_UPPER_LEFT_COORDS[0],
-                         settings.BROWSER_BOTTOM_RIGHT_COORDS[1] -
-                             settings.BROWSER_UPPER_LEFT_COORDS[1]]
+        self._VIS_RNG = [positions.BROWSER_BOTTOM_RIGHT_COORDS[0] -
+                             positions.BROWSER_UPPER_LEFT_COORDS[0],
+                         positions.BROWSER_BOTTOM_RIGHT_COORDS[1] -
+                             positions.BROWSER_UPPER_LEFT_COORDS[1]]
         self._row_count = 0
-        self._SCR_COORDS = [settings.BROWSER_UPPER_LEFT_COORDS,
-                            settings.BROWSER_BOTTOM_RIGHT_COORDS]
+        self._SCR_COORDS = [positions.BROWSER_UPPER_LEFT_COORDS,
+                            positions.BROWSER_BOTTOM_RIGHT_COORDS]
         self._END_ROW = 1 # The last row in the pad.
         self._BEG_ROW = 0
         self._bot_row = 0 # The last row in the pad that is visible.
@@ -108,11 +110,11 @@ class Browser(signals.Observer):
         self._pad = None
 
         shared.UIRegistry.get().register(self)
-        settings.cmd_map['edit'].register(self)
-        settings.cmd_map['new_entry'].register(self)
-        settings.cmd_map['del_entry'].register(self)
-        settings.cmd_map['sort'].register(self)
-        settings.cmd_map['filter'].register(self)
+        settings.keys.cmd_map['edit'].register(self)
+        settings.keys.cmd_map['new_entry'].register(self)
+        settings.keys.cmd_map['del_entry'].register(self)
+        settings.keys.cmd_map['sort'].register(self)
+        settings.keys.cmd_map['filter'].register(self)
 
     # TODO: Don't hardcode the beginning of the first column. It wont
     # necessarily be zero. Also, account for zero widths.
@@ -301,12 +303,12 @@ class Browser(signals.Observer):
         self.redraw()
 
     def on_screen_resize(self):
-        self._VIS_RNG = [settings.BROWSER_BOTTOM_RIGHT_COORDS[0] -
-                             settings.BROWSER_UPPER_LEFT_COORDS[0],
-                         settings.BROWSER_BOTTOM_RIGHT_COORDS[1] -
-                             settings.BROWSER_UPPER_LEFT_COORDS[1]]
-        self._SCR_COORDS = [settings.BROWSER_UPPER_LEFT_COORDS,
-                            settings.BROWSER_BOTTOM_RIGHT_COORDS]
+        self._VIS_RNG = [positions.BROWSER_BOTTOM_RIGHT_COORDS[0] -
+                             positions.BROWSER_UPPER_LEFT_COORDS[0],
+                         positions.BROWSER_BOTTOM_RIGHT_COORDS[1] -
+                             positions.BROWSER_UPPER_LEFT_COORDS[1]]
+        self._SCR_COORDS = [positions.BROWSER_UPPER_LEFT_COORDS,
+                            positions.BROWSER_BOTTOM_RIGHT_COORDS]
         self._top_row = self._VIS_RNG[0] # TODO: this should be bot_row
         self._right_col = self._VIS_RNG[1]
         self.redraw()
@@ -369,8 +371,9 @@ class Browser(signals.Observer):
                 prev_cell_coords.sep - prev_cell_coords.beg)
         prev_row = self._cur_row
         prev_col = self._cur_col
-        if direction == Browser.DOWN or direction == Browser.UP:
-            if direction == Browser.UP:
+        if (direction == enums.Scroll.DOWN) or\
+                (direction == enums.Scroll.UP):
+            if direction == enums.Scroll.UP:
                 self._cur_row = self._cur_row - quantifier
             else:
                 self._cur_row = self._cur_row + quantifier
@@ -390,8 +393,9 @@ class Browser(signals.Observer):
                 self._top_row = self._cur_row
                 self._bot_row = self._top_row + self._VIS_RNG[0]
 
-        elif direction == Browser.LEFT or direction == Browser.RIGHT:
-            if direction == Browser.LEFT:
+        elif (direction == enums.Scroll.LEFT) or\
+                (direction == enums.Scroll.RIGHT):
+            if direction == enums.Scroll.LEFT:
                 self._cur_col = self._cur_col - quantifier
             else:
                 self._cur_col = self._cur_col + quantifier

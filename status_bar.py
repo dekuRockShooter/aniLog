@@ -1,9 +1,10 @@
 import curses
 import curses.textpad
 import shared
-import settings
+import enums
+import settings.keys
+import settings.positions as positions
 import signals
-from shared import BrowserFactory
 
 # TODO: no hard coding
 class StatusBar(signals.Observer):
@@ -12,10 +13,6 @@ class StatusBar(signals.Observer):
     The status bar shows information about the program's current state.
     It is also used to write and send commands to the program.
     
-    Class Attributes:
-        CONFIRM: Show a prompt in confirmation mode.
-        ERROR: Show a prompt in error mode.
-
     Methods:
         edit: Write a command for the user to edit.
         prompt: Show a message.
@@ -25,9 +22,6 @@ class StatusBar(signals.Observer):
         get_cmd_name: Return the name of the last command entered.
         get_cmd_args: Return the arguements of the last command entered.
     """
-    CONFIRM = 1
-    ERROR = 2
-
     def __init__(self, position, cmd_map):
         """Constructor.
 
@@ -43,7 +37,7 @@ class StatusBar(signals.Observer):
         curses.initscr()
         curses.noecho()
         self._scr_right_col = curses.COLS
-        self._scr_row = settings.STATUS_BAR_COORDS[0]
+        self._scr_row = positions.STATUS_BAR_COORDS[0]
         self._win = curses.newwin(1, curses.COLS - 1, self._scr_row, 0)
         self._text_pad = curses.textpad.Textbox(self._win, insert_mode=True)
         self._cur_str = ''
@@ -51,15 +45,15 @@ class StatusBar(signals.Observer):
         self._last_cmd_args = ''
         self._cmd_map = cmd_map
         shared.UIRegistry.get().register(self)
-        settings.cmd_map['next_browser'].register(self)
-        settings.cmd_map['prev_browser'].register(self)
+        settings.keys.cmd_map['next_browser'].register(self)
+        settings.keys.cmd_map['prev_browser'].register(self)
 
     def _reposition(self, scr_row, cols):
-        if settings.STATUS_BAR_POSITION == settings.SCREEN_TOP:
+        if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:
             return
         else:
             self._scr_right_col = curses.COLS
-            self._scr_row = settings.STATUS_BAR_COORDS[0]
+            self._scr_row = positions.STATUS_BAR_COORDS[0]
             self._win = curses.newwin(1, curses.COLS - 1, self._scr_row, 0)
             self._text_pad = curses.textpad.Textbox(self._win, insert_mode=True)
             self.update()
@@ -71,10 +65,10 @@ class StatusBar(signals.Observer):
 
         This method updates the string to be displayed in the status bar.
         """
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = shared.BrowserFactory.get_cur()
         name = cur_browser.get_name()
-        idx = BrowserFactory.get_cur_idx() + 1
-        browser_count = BrowserFactory.get_count()
+        idx = shared.BrowserFactory.get_cur_idx() + 1
+        browser_count = shared.BrowserFactory.get_count()
         self._cur_str = '{}:{}/{}'.format(name, idx, browser_count)
 
     def update(self):
@@ -128,7 +122,7 @@ class StatusBar(signals.Observer):
             self._cmd_map[self._last_cmd_name].execute()
             self.update()
         except KeyError:
-            self.prompt('That command does not exist.', StatusBar.ERROR)
+            self.prompt('That command does not exist.', enums.Prompt.ERROR)
 
     def prompt(self, prompt_str, mode):
         """Show a message.
@@ -141,24 +135,24 @@ class StatusBar(signals.Observer):
             mode: Specifies what actions the status bar should take.
 
         Modes:
-            StatusBar.CONFIRM: The prompt is meant to ask for
+            enums.Prompt.CONFIRM: The prompt is meant to ask for
                 confirmation.  The user must enter a 'y' or 'n',
                 and the reply is returned.
-            StatusBar.ERROR: The prompt is meant to notify the user
+            enums.Prompt.ERROR: The prompt is meant to notify the user
                 that an error has occured.
 
         Returns:
-            'y'/'n': If the mode is StatusBar.CONFIRM
-            An empty string: If the mode is StatusBar.ERROR
+            'y'/'n': If the mode is enums.Prompt.CONFIRM
+            An empty string: If the mode is enums.Prompt.ERROR
         """
         ret_str = ''
-        if mode == StatusBar.CONFIRM:
+        if mode == enums.Prompt.CONFIRM:
             self._clear(prompt_str)
             ret_str = 0
             while not (ret_str == ord('y') or ret_str == ord('n')):
                 ret_str = self._win.getch()
             self.update()
-        elif mode == StatusBar.ERROR:
+        elif mode == enums.Prompt.ERROR:
             self._clear('ERROR: {}'.format(prompt_str))
         return ret_str
 
@@ -182,11 +176,11 @@ class StatusBar(signals.Observer):
         self._win.refresh()
 
     def on_screen_resize(self):
-        if settings.STATUS_BAR_POSITION == settings.SCREEN_TOP:
+        if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:
             return
         else:
             self._scr_right_col = curses.COLS
-            self._scr_row = settings.STATUS_BAR_COORDS[0]
+            self._scr_row = positions.STATUS_BAR_COORDS[0]
             self._win = curses.newwin(1, curses.COLS - 1, self._scr_row, 0)
             self._text_pad = curses.textpad.Textbox(self._win, insert_mode=True)
             self.update()

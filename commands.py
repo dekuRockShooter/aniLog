@@ -20,10 +20,9 @@
         Write: Write a string to the command line.
 """
 import signals
-from status_bar import StatusBar
-from browser import Browser
+import enums
 from shared import BrowserFactory, StatusBarRegistry, DBRegistry, CopyBuffer,\
-        UIRegistry
+                   UIRegistry
 
 
 class Command:
@@ -50,25 +49,25 @@ class Command:
 class ScrollDown(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
-        cur_browser.scroll(Browser.DOWN, self._quantifier)
+        cur_browser.scroll(enums.Scroll.DOWN, self._quantifier)
 
 
 class ScrollUp(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
-        cur_browser.scroll(Browser.UP, self._quantifier)
+        cur_browser.scroll(enums.Scroll.UP, self._quantifier)
 
 
 class ScrollLeft(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
-        cur_browser.scroll(Browser.LEFT, self._quantifier)
+        cur_browser.scroll(enums.Scroll.LEFT, self._quantifier)
 
 
 class ScrollRight(Command):
     def execute(self):
         cur_browser = BrowserFactory.get_cur()
-        cur_browser.scroll(Browser.RIGHT, self._quantifier)
+        cur_browser.scroll(enums.Scroll.RIGHT, self._quantifier)
 
 
 class EditCell(Command, signals.Subject):
@@ -82,7 +81,7 @@ class EditCell(Command, signals.Subject):
         new_val = ''
         if not args:
             stat_bar.prompt('Usage: edit primary_key_val new_cell_value',
-                              StatusBar.ERROR)
+                              enums.Prompt.ERROR)
             return
         try:
             sep_idx = args.index(' ')
@@ -132,10 +131,10 @@ class DeleteEntry(Command, signals.Subject):
         args = stat_bar.get_cmd_args()
         if not args:
             stat_bar.prompt('Usage: del_entry primary_key_val',
-                            StatusBar.ERROR)
+                            enums.Prompt.ERROR)
             return
         reply = stat_bar.prompt('Confirm deletion (y/n): ',
-                                      StatusBar.CONFIRM)
+                                      enums.Prompt.CONFIRM)
         if reply == ord('n'):
             return
         cur_browser = BrowserFactory.get_cur()
@@ -268,7 +267,7 @@ class Sort(Command, signals.Subject):
             direction = args[: sep_idx]
             if direction not in (Sort.ASC, Sort.DES):
                 stat_bar.prompt('Usage: sort asc|desc [column_name]',
-                                StatusBar.ERROR)
+                                enums.Prompt.ERROR)
                 return
             col_name = args[sep_idx + 1:]
         if not col_name:
@@ -310,7 +309,7 @@ class Write(Command):
         try:
             cmd_str = self._expand(self._cmd_str)
         except ValueError as err:
-            stat_bar.prompt(str(err), StatusBar.ERROR)
+            stat_bar.prompt(str(err), enums.Prompt.ERROR)
             return
         stat_bar.edit(cmd_str)
 

@@ -1,6 +1,7 @@
 import curses
 import os
-import settings
+import settings.keys
+import settings.positions as positions
 import signals
 from browser import Browser
 from shared import BrowserFactory, DBRegistry, StatusBarRegistry
@@ -28,8 +29,8 @@ class UI(signals.Subject, signals.Observer):
         signals.Observer.__init__(self)
         self._win = None
         self._key_map = key_map
-        settings.cmd_map['next_browser'].register(self)
-        settings.cmd_map['prev_browser'].register(self)
+        settings.keys.cmd_map['next_browser'].register(self)
+        settings.keys.cmd_map['prev_browser'].register(self)
 
     def create(self):
         """Start curses and create the user interface."""
@@ -43,37 +44,40 @@ class UI(signals.Subject, signals.Observer):
 
     def _create_widgets(self):
         tables = [('watching'), ('backlog'), ('completed')]
-        b1 = BrowserFactory.create(settings.BROWSER_UPPER_LEFT_COORDS,
-                                   settings.BROWSER_BOTTOM_RIGHT_COORDS,
-                                   settings.COL_WIDTHS,
-                                   settings.DEFAULT_DB_NAME,
-                                   tables[0])
-        b2 = BrowserFactory.create(settings.BROWSER_UPPER_LEFT_COORDS,
-                                   settings.BROWSER_BOTTOM_RIGHT_COORDS,
-                                   settings.COL_WIDTHS,
-                                   settings.DEFAULT_DB_NAME,
-                                  'backlog')
-        b3 = BrowserFactory.create(settings.BROWSER_UPPER_LEFT_COORDS,
-                                   settings.BROWSER_BOTTOM_RIGHT_COORDS,
-                                   settings.COL_WIDTHS,
-                                   settings.DEFAULT_DB_NAME,
-                                   'completed')
+        b1 = BrowserFactory.create(
+                positions.BROWSER_UPPER_LEFT_COORDS,
+                positions.BROWSER_BOTTOM_RIGHT_COORDS,
+                positions.COL_WIDTHS,
+                positions.DEFAULT_DB_NAME,
+                tables[0])
+        b2 = BrowserFactory.create(
+                positions.BROWSER_UPPER_LEFT_COORDS,
+                positions.BROWSER_BOTTOM_RIGHT_COORDS,
+                positions.COL_WIDTHS,
+                positions.DEFAULT_DB_NAME,
+                tables[1])
+        b3 = BrowserFactory.create(
+                positions.BROWSER_UPPER_LEFT_COORDS,
+                positions.BROWSER_BOTTOM_RIGHT_COORDS,
+                positions.COL_WIDTHS,
+                positions.DEFAULT_DB_NAME,
+                tables[2])
         b1.create()
         b2.create()
         b3.create()
-        StatusBarRegistry.create(1, settings.cmd_map).update()
+        StatusBarRegistry.create(1, settings.keys.cmd_map).update()
 
     def _set_coords(self):
         curses.update_lines_cols()
-        if settings.STATUS_BAR_POSITION == settings.SCREEN_TOP:
-            settings.STATUS_BAR_COORDS = (0, 0)
-            settings.BROWSER_UPPER_LEFT_COORDS = (1, 0)
-            settings.BROWSER_BOTTOM_RIGHT_COORDS = (curses.LINES - 1,
+        if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:
+            positions.STATUS_BAR_COORDS = (0, 0)
+            positions.BROWSER_UPPER_LEFT_COORDS = (1, 0)
+            positions.BROWSER_BOTTOM_RIGHT_COORDS = (curses.LINES - 1,
                                                     curses.COLS - 1)
         else:
-            settings.STATUS_BAR_COORDS = (curses.LINES - 1, 0)
-            settings.BROWSER_UPPER_LEFT_COORDS = (0, 0)
-            settings.BROWSER_BOTTOM_RIGHT_COORDS = (curses.LINES - 2,
+            positions.STATUS_BAR_COORDS = (curses.LINES - 1, 0)
+            positions.BROWSER_UPPER_LEFT_COORDS = (0, 0)
+            positions.BROWSER_BOTTOM_RIGHT_COORDS = (curses.LINES - 2,
                                                     curses.COLS - 1)
 
     def destroy(self):

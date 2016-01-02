@@ -194,5 +194,44 @@ class StatusBar(signals.Observer):
             self.on_browser_switch()
 
 
+class StatusBarRegistry:
+    """Manage the status bar.
+
+    This class provides static methods for creating, accessing, and
+    removing the status bar.
+
+    Methods:
+        get: Return the status bar.
+        create: Create the status bar.
+        destroy: Destroy the status bar.
+    """
+    _status_bar = None
+
+    @staticmethod
+    def get():
+        """Return the status bar."""
+        return StatusBarRegistry._status_bar
+
+    @staticmethod
+    def create(position, cmd_map):
+        """Create the status bar.
+
+        The status bar is created if it has not been already.  The
+        status bar is returned.
+        """
+        if not StatusBarRegistry._status_bar:
+            StatusBarRegistry._status_bar = StatusBar(position, cmd_map)
+        return StatusBarRegistry._status_bar
+
+    @staticmethod
+    def destroy():
+        """Destroy (close) the status bar."""
+        StatusBarRegistry._status_bar.destroy()
+
+    @staticmethod
+    def destroy_all():
+        StatusBarRegistry.destroy()
+
+
 if __name__ == '__main__':
     print('Not a script.')

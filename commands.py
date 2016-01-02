@@ -23,7 +23,8 @@ import signals
 import enums
 import browser
 import ui
-from shared import StatusBarRegistry, DBRegistry, CopyBuffer
+import status_bar
+from shared import DBRegistry, CopyBuffer
 
 
 class Command:
@@ -77,7 +78,7 @@ class EditCell(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
-        stat_bar = StatusBarRegistry.get()
+        stat_bar = status_bar.status_bar.StatusBarRegistry.get()
         args = stat_bar.get_cmd_args()
         new_val = ''
         if not args:
@@ -128,7 +129,7 @@ class DeleteEntry(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
-        stat_bar = StatusBarRegistry.get()
+        stat_bar = status_bar.StatusBarRegistry.get()
         args = stat_bar.get_cmd_args()
         if not args:
             stat_bar.prompt('Usage: del_entry primary_key_val',
@@ -223,7 +224,7 @@ class Filter(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
-        stat_bar = StatusBarRegistry.get()
+        stat_bar = status_bar.StatusBarRegistry.get()
         arg = stat_bar.get_cmd_args()
         cur_browser = browser.BrowserRegistry.get_cur()
         col_name = cur_browser.get_col_name()
@@ -259,7 +260,7 @@ class Sort(Command, signals.Subject):
         col_name = ''
         direction = self._direction
         if self._direction is None:
-            stat_bar = StatusBarRegistry.get()
+            stat_bar = status_bar.StatusBarRegistry.get()
             args = stat_bar.get_cmd_args()
             try:
                 sep_idx = args.index(' ')
@@ -306,7 +307,7 @@ class Write(Command):
         self._cmd_str = cmd_str
 
     def execute(self):
-        stat_bar = StatusBarRegistry.get()
+        stat_bar = status_bar.StatusBarRegistry.get()
         try:
             cmd_str = self._expand(self._cmd_str)
         except ValueError as err:

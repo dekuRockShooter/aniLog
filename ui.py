@@ -4,7 +4,8 @@ import settings.keys
 import settings.positions as positions
 import signals
 import browser
-from shared import DBRegistry, StatusBarRegistry
+import status_bar
+from shared import DBRegistry
 
 # TODO: merge in aniLog.py
 class UI(signals.Subject, signals.Observer):
@@ -65,7 +66,7 @@ class UI(signals.Subject, signals.Observer):
         b1.create()
         b2.create()
         b3.create()
-        StatusBarRegistry.create(1, settings.keys.cmd_map).update()
+        status_bar.StatusBarRegistry.create(1, settings.keys.cmd_map).update()
 
     def _set_coords(self):
         curses.update_lines_cols()

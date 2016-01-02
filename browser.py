@@ -188,7 +188,7 @@ class Browser(signals.Observer):
     def _populate_browser(self, rows):
         """Write rows to the browser.
 
-        The rows are written to the browser starting at the first 
+        The rows are written to the browser starting at the first
         empty line.  If there are not enough lines in the browser,
         then it is resized.
 
@@ -232,7 +232,7 @@ class Browser(signals.Observer):
         Args:
             rows: The new number of rows. This must be greater than the
                 current number of rows.
-            cols: The new number of columns. This must be greater than 
+            cols: The new number of columns. This must be greater than
                 the current number of columns.
         """
         if (rows <= self._END_ROW) and (cols <= self._END_COL):
@@ -317,7 +317,7 @@ class Browser(signals.Observer):
     def get_cur_cell(self):
         """Return the value of the currently selected cell.
 
-        The current cell's value is queried from the database and 
+        The current cell's value is queried from the database and
         returned as the datatype that it is stored as in the database.
         """
         cmd = 'select "{col_name}" from "{table}" where "{prim_key}"="{key}"'.\
@@ -362,7 +362,7 @@ class Browser(signals.Observer):
         elif signal is signals.Signal.ENTRY_UPDATED:
             self.on_entry_updated()
         elif signal is signals.Signal.NEW_QUERY:
-            if shared.BrowserFactory.get_cur() is self:
+            if BrowserRegistry.get_cur() is self:
                 self.on_new_query(args)
 
     def scroll(self, direction, quantifier=1):
@@ -418,3 +418,144 @@ class Browser(signals.Observer):
         self._pad.addstr(self._cur_row, cur_cell_coords.beg, cur_cell_val,\
                 curses.A_STANDOUT)
         self.redraw()
+
+
+class BrowserRegistry:
+    """Manage all browsers.
+
+    This class provides static methods for creating, accessing, and
+    removing browsers.
+
+    Methods:
+        get: return the current browser.
+        get_idx: return the index of the current browser.
+        get_count: return the number of browsers.
+        set: switch to another browser.
+        create: create a new browser.
+        destroy: destroy the current browser.
+    """
+    _browser_map = {}
+    _id = 0
+    _browser_indexes = []
+    _cur_browser = None
+    _cur_idx = -1
+
+    @staticmethod
+    def get_cur():
+        """Return the current browser."""
+        return BrowserRegistry._cur_browser
+
+    @staticmethod
+    def get_cur_idx():
+        """Return the index (zero-based) of the current browser.
+
+        Raises:
+            IndexError: if _cur_idx is -1, meaning no browsers have
+                been created.
+        """
+        return BrowserRegistry._cur_idx
+
+    @staticmethod
+    def get_count():
+        """Return the number of browsers."""
+        return len(BrowserRegistry._browser_indexes)
+
+    @staticmethod
+    def set_cur(idx):
+        """Switch to another browser.
+
+        The browser to switch to can be identified via its index or its
+        name.
+
+        If both idx and name are given, then the method first tries to
+        switch using the index.  If that is unsuccessful, then it tries
+        using the name.
+
+        Args:
+            idx: The index of the browser to open.
+            name: The name of the browser to open.
+
+        Raises:
+            IndexError: if idx is out of bounds.
+            KeyError: if name is not a name of a browser.
+        """
+        BrowserRegistry._cur_browser = BrowserRegistry._browser_indexes[idx]
+        BrowserRegistry._cur_idx = idx
+
+    @staticmethod
+    def create(upper_left_coords, bot_right_coords,
+               col_widths, db_name, table):
+        """Create and return a new browser.
+
+        Create a browser within the given screen coordinates. The
+        browser will be named db_name.table_name. The browser is then
+        returned. If a browser with the same name already exists, then
+        that one is returned. If a new browser was created, then that
+        browser is opened.
+
+        Args:
+            upper_left_coords (tuple): The screen coordinates at which
+                the upper left corner of the browser is drawn. The
+                format is (row, column).
+            bot_right_coords (tuple): The screen coordinates at which
+                the bottom right corner of the browser is drawn. The
+                format is (row, column).
+            col_widths (list): The widths (in numbers of characters)
+                 that each column in the table are displayed with.
+            db_name: The name of the database to use.
+            table_name: The name of the table to use.
+        """
+        name = '{}.{}'.format(db_name, table)
+        if name in BrowserRegistry._browser_map:
+            return BrowserRegistry._browser_map[name]
+        new_browser = Browser(upper_left_coords, bot_right_coords,
+                                      col_widths, db_name, table)
+        BrowserRegistry._browser_map[name] = new_browser
+        BrowserRegistry._browser_indexes.insert(BrowserRegistry._cur_idx + 1,
+                                               new_browser)
+        BrowserRegistry.set_cur(BrowserRegistry._cur_idx + 1)
+        return new_browser
+
+    @staticmethod
+    def destroy(name=None, idx=None):
+        """Destroy (close) a browser.
+
+        The browser to destroy be identified via its index or its name.
+
+        If both idx and name are given, then the method first tries to
+        destroy using the index.  If that is unsuccessful, then it tries
+        using the name.
+
+        If neither idx nor name is given, then the current browser is
+        destroyed.
+
+        The new browser is the one after the destroyed one.  If the
+        destroyed browser was the last one, then the new browser is
+        the one that was before it.
+
+        Args:
+            idx: The index of the browser to destroy.
+            name: The name of the browser to destroy.
+
+        Raises:
+            IndexError: if idx is out of bounds.
+            KeyError: if name is not a name of a browser.
+        """
+        if idx:
+            name = BrowserRegistry,_browser_indexes[idx].get_name()
+        elif name is None:
+            name = BrowserRegistry,_browser_indexes[\
+                    BrowserRegistry._cur_idx].get_name()
+        BrowserRegistry,_browser_map[name].destroy()
+        BrowserRegistry._browser_map.pop(name)
+        BrowserRegistry._browser_indexes.pop(BrowserRegistry._cur_idx)
+        if BrowserRegistry._cur_idx >= len(BrowserRegistry._browser_indexes):
+            BrowserRegistry._cur_idx = BrowserRegistry._cur_idx - 1
+        elif BrowserRegistry._cur_idx < 0:
+            BrowserRegistry._cur_idx = -1
+
+    @staticmethod
+    def destroy_all():
+        for name, browser in BrowserRegistry._browser_map.items():
+            browser.destroy()
+        BrowserRegistry._browser_map.clear()

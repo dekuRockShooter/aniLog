@@ -1,5 +1,6 @@
 import curses
 import curses.textpad
+import browser
 import shared
 import enums
 import settings.keys
@@ -65,10 +66,10 @@ class StatusBar(signals.Observer):
 
         This method updates the string to be displayed in the status bar.
         """
-        cur_browser = shared.BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         name = cur_browser.get_name()
-        idx = shared.BrowserFactory.get_cur_idx() + 1
-        browser_count = shared.BrowserFactory.get_count()
+        idx = browser.BrowserRegistry.get_cur_idx() + 1
+        browser_count = browser.BrowserRegistry.get_count()
         self._cur_str = '{}:{}/{}'.format(name, idx, browser_count)
 
     def update(self):

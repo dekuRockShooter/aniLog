@@ -21,7 +21,8 @@
 """
 import signals
 import enums
-from shared import BrowserFactory, StatusBarRegistry, DBRegistry, CopyBuffer,\
+import browser
+from shared import StatusBarRegistry, DBRegistry, CopyBuffer,\
                    UIRegistry
 
 
@@ -48,25 +49,25 @@ class Command:
 
 class ScrollDown(Command):
     def execute(self):
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         cur_browser.scroll(enums.Scroll.DOWN, self._quantifier)
 
 
 class ScrollUp(Command):
     def execute(self):
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         cur_browser.scroll(enums.Scroll.UP, self._quantifier)
 
 
 class ScrollLeft(Command):
     def execute(self):
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         cur_browser.scroll(enums.Scroll.LEFT, self._quantifier)
 
 
 class ScrollRight(Command):
     def execute(self):
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         cur_browser.scroll(enums.Scroll.RIGHT, self._quantifier)
 
 
@@ -89,7 +90,7 @@ class EditCell(Command, signals.Subject):
         except ValueError:
             sep_idx = len(args)
         prim_key = args[: sep_idx]
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         cur_db = DBRegistry.get_db(db_name)
         s = 'update "{table}" set "{col_name}"="{value}"\
@@ -111,7 +112,7 @@ class NewEntry(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
         cur_db = DBRegistry.get_db(db_name)
@@ -137,7 +138,7 @@ class DeleteEntry(Command, signals.Subject):
                                       enums.Prompt.CONFIRM)
         if reply == ord('n'):
             return
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
         cur_db = DBRegistry.get_db(db_name)
@@ -152,7 +153,7 @@ class DeleteEntry(Command, signals.Subject):
 
 class CopyEntry(Command):
     def execute(self):
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
         cur_db = DBRegistry.get_db(db_name)
@@ -173,7 +174,7 @@ class CopyEntry(Command):
 
 class PasteEntry(Command):
     def execute(self):
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
         cur_db = DBRegistry.get_db(db_name)
@@ -192,11 +193,11 @@ class NextBrowser(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
-        cur_idx = BrowserFactory.get_cur_idx()
+        cur_idx = browser.BrowserRegistry.get_cur_idx()
         try:
-            BrowserFactory.set_cur(cur_idx + 1)
+            browser.BrowserRegistry.set_cur(cur_idx + 1)
         except IndexError:
-            BrowserFactory.set_cur(0)
+            browser.BrowserRegistry.set_cur(0)
         self.emit(signals.Signal.BROWSER_SWITCHED)
 
 
@@ -206,13 +207,13 @@ class PreviousBrowser(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
-        cur_idx = BrowserFactory.get_cur_idx()
+        cur_idx = browser.BrowserRegistry.get_cur_idx()
         try:
             if cur_idx == 0:
                 raise IndexError
-            BrowserFactory.set_cur(cur_idx - 1)
+            browser.BrowserRegistry.set_cur(cur_idx - 1)
         except IndexError:
-            BrowserFactory.set_cur(BrowserFactory.get_count() - 1)
+            browser.BrowserRegistry.set_cur(browser.BrowserRegistry.get_count() - 1)
         self.emit(signals.Signal.BROWSER_SWITCHED)
 
 
@@ -224,7 +225,7 @@ class Filter(Command, signals.Subject):
     def execute(self):
         stat_bar = StatusBarRegistry.get()
         arg = stat_bar.get_cmd_args()
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         col_name = cur_browser.get_col_name()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
@@ -251,7 +252,7 @@ class Sort(Command, signals.Subject):
     # DES and just have then be command line arguments.  The code would be
     # much easier to follow.
     def execute(self):
-        cur_browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
         cur_db = DBRegistry.get_db(db_name)
@@ -319,17 +320,17 @@ class Write(Command):
         Raises:
             ValueError: if cmd_str contains invalid macros.
         """
-        browser = BrowserFactory.get_cur()
+        cur_browser = browser.BrowserRegistry.get_cur()
         possible_macro = False
         expanded_str = []
         for letter in cmd_str:
             if possible_macro:
                 if letter == 'p':
-                    letter = str(browser.get_prim_key())
+                    letter = str(cur_browser.get_prim_key())
                 elif letter == 'c':
-                    letter = browser.get_col_name()
+                    letter = cur_browser.get_col_name()
                 elif letter == 'v':
-                    letter = str(browser.get_cur_cell())
+                    letter = str(cur_browser.get_cur_cell())
                 elif letter == '%':
                     pass
                 else:

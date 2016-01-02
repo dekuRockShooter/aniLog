@@ -3,8 +3,8 @@ import os
 import settings.keys
 import settings.positions as positions
 import signals
-from browser import Browser
-from shared import BrowserFactory, DBRegistry, StatusBarRegistry
+import browser
+from shared import DBRegistry, StatusBarRegistry
 
 # TODO: merge in aniLog.py
 class UI(signals.Subject, signals.Observer):
@@ -44,19 +44,19 @@ class UI(signals.Subject, signals.Observer):
 
     def _create_widgets(self):
         tables = [('watching'), ('backlog'), ('completed')]
-        b1 = BrowserFactory.create(
+        b1 = browser.BrowserRegistry.create(
                 positions.BROWSER_UPPER_LEFT_COORDS,
                 positions.BROWSER_BOTTOM_RIGHT_COORDS,
                 positions.COL_WIDTHS,
                 positions.DEFAULT_DB_NAME,
                 tables[0])
-        b2 = BrowserFactory.create(
+        b2 = browser.BrowserRegistry.create(
                 positions.BROWSER_UPPER_LEFT_COORDS,
                 positions.BROWSER_BOTTOM_RIGHT_COORDS,
                 positions.COL_WIDTHS,
                 positions.DEFAULT_DB_NAME,
                 tables[1])
-        b3 = BrowserFactory.create(
+        b3 = browser.BrowserRegistry.create(
                 positions.BROWSER_UPPER_LEFT_COORDS,
                 positions.BROWSER_BOTTOM_RIGHT_COORDS,
                 positions.COL_WIDTHS,
@@ -83,7 +83,7 @@ class UI(signals.Subject, signals.Observer):
     def destroy(self):
         """Destroy all object and end curses."""
         DBRegistry.destroy_all()
-        BrowserFactory.destroy_all()
+        browser.BrowserRegistry.destroy_all()
         curses.nocbreak()
         curses.echo()
         curses.curs_set(1)
@@ -135,7 +135,7 @@ class UI(signals.Subject, signals.Observer):
         changed. It simply redraws the current browser (as indicated by
         BrowserRegistry.get()).
         """
-        BrowserFactory.get_cur().redraw()
+        browser.BrowserRegistry.get_cur().redraw()
 
     def receive_signal(self, signal, args):
         if signal == signals.Signal.BROWSER_SWITCHED:

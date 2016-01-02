@@ -32,6 +32,7 @@ class DBConnection:
         self._connection = None
         self._cursor = None
         self._no_connect_err = NoConnectionError()
+        self._table_names = []
 
     def connect(self):
         """Connect to the database.
@@ -43,6 +44,8 @@ class DBConnection:
             raise FileNotFoundError(self._name)
         self._connection = sqlite3.connect(self._name)
         self._cursor = self._connection.cursor()
+        s = 'select name from sqlite_master where type="table"'
+        self._table_names = self.execute(s)
 
     def close(self):
         """Close the connection to the database."""
@@ -122,6 +125,9 @@ class DBConnection:
                 (select max(rowid) from "{table}")'.format(table=table_name)
         self._cursor.execute(s)
         return self._cursor.fetchone()
+
+    def get_tables(self):
+        return self._table_names
 
     def execute(self, statement):
         """Execute an arbitrary sqlite statement.

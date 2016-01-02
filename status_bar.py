@@ -1,7 +1,6 @@
 import curses
 import curses.textpad
 import browser
-import ui
 import shared
 import enums
 import settings.keys
@@ -46,9 +45,9 @@ class StatusBar(signals.Observer):
         self._last_cmd_name = ''
         self._last_cmd_args = ''
         self._cmd_map = cmd_map
-        ui.UIRegistry.get().register(self)
         settings.keys.cmd_map['next_browser'].register(self)
         settings.keys.cmd_map['prev_browser'].register(self)
+        settings.keys.cmd_map['resize'].register(self)
 
     def _reposition(self, scr_row, cols):
         if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:

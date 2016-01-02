@@ -19,11 +19,12 @@
         Sort: Sort the entries.
         Write: Write a string to the command line.
 """
+import curses
 import signals
 import enums
 import browser
-import ui
 import status_bar
+import settings.positions as positions
 from shared import DBRegistry, CopyBuffer
 
 
@@ -78,7 +79,7 @@ class EditCell(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
-        stat_bar = status_bar.status_bar.StatusBarRegistry.get()
+        stat_bar = status_bar.StatusBarRegistry.get()
         args = stat_bar.get_cmd_args()
         new_val = ''
         if not args:
@@ -343,3 +344,26 @@ class Write(Command):
             else:
                 expanded_str.append(letter)
         return ''.join(expanded_str)
+
+
+class Resize(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
+    def execute(self):
+        self._set_coords()
+        self.emit(signals.Signal.SCREEN_RESIZED)
+
+    def _set_coords(self):
+        curses.update_lines_cols()
+        if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:
+            positions.STATUS_BAR_COORDS = (0, 0)
+            positions.BROWSER_UPPER_LEFT_COORDS = (1, 0)
+            positions.BROWSER_BOTTOM_RIGHT_COORDS = (curses.LINES - 1,
+                                                    curses.COLS - 1)
+        else:
+            positions.STATUS_BAR_COORDS = (curses.LINES - 1, 0)
+            positions.BROWSER_UPPER_LEFT_COORDS = (0, 0)
+            positions.BROWSER_BOTTOM_RIGHT_COORDS = (curses.LINES - 2,
+                                                    curses.COLS - 1)

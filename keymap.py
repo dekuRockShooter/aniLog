@@ -1,4 +1,7 @@
+import curses
+
 KEY_ALT = 27
+KEY_RESIZE = curses.KEY_RESIZE
 
 
 class AniLogKeyParser:
@@ -64,6 +67,7 @@ class AniLogKeyParser:
         ctrl_alt = '<Ctrl-Alt-'
         alt = '<Alt-'
         ctrl = '<Ctrl-'
+        resize = '<Rsz>'
         modifier = ''
         if key_str.startswith(ctrl_alt) and key_str.endswith('>'):
             modifier = ctrl_alt
@@ -71,6 +75,8 @@ class AniLogKeyParser:
             modifier = ctrl
         elif key_str.startswith(alt) and key_str.endswith('>'):
             modifier = alt
+        elif key_str == resize:
+            return [KEY_RESIZE]
         else:
             return []
         # The '+ 2' refers to the closing '>' and the key being modified.

@@ -117,10 +117,6 @@ class UI(signals.Subject, signals.Observer):
                     cmd = self._key_map.get_cmd(key)
                 except KeyError:
                     cmd = None
-            elif key == curses.KEY_RESIZE:
-                self._set_coords()
-                self.emit(signals.Signal.SCREEN_RESIZED)
-                continue
             else:
                 try:
                     cmd = self._key_map.get_cmd(key)

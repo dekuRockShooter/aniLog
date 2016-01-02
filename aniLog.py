@@ -1,9 +1,9 @@
-from ui import UI
+import ui
 import shared
 import settings.keys
 
-shared.UIRegistry.create(settings.keys.key_map)
-ui = shared.UIRegistry.get()
-ui.create()
-ui.get_key()
-shared.UIRegistry.destroy()
+ui.UIRegistry.create(settings.keys.key_map)
+user_interface = ui.UIRegistry.get()
+user_interface.create()
+user_interface.get_key()
+ui.UIRegistry.destroy()

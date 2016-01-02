@@ -2,6 +2,7 @@ import math
 import curses
 import enums
 import shared
+import ui
 import settings.positions as positions
 import settings.keys
 import signals
@@ -109,7 +110,7 @@ class Browser(signals.Observer):
 
         self._pad = None
 
-        shared.UIRegistry.get().register(self)
+        ui.UIRegistry.get().register(self)
         settings.keys.cmd_map['edit'].register(self)
         settings.keys.cmd_map['new_entry'].register(self)
         settings.keys.cmd_map['del_entry'].register(self)

@@ -22,8 +22,8 @@
 import signals
 import enums
 import browser
-from shared import StatusBarRegistry, DBRegistry, CopyBuffer,\
-                   UIRegistry
+import ui
+from shared import StatusBarRegistry, DBRegistry, CopyBuffer
 
 
 class Command:

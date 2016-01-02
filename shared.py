@@ -19,44 +19,6 @@ import status_bar
 import ui
 
 
-class UIRegistry:
-    """Manage the user interface.
-
-    This class provides static methods to create and access the user
-    interface. It makes sure that there is only one user interface.
-
-    Methods:
-        get: return the reference to the user interface.
-        create: create the user interface.
-        destroy: deallocate the user interface.
-    """
-    _ui = None
-
-    @staticmethod
-    def get():
-        """Return the reference to the user interface."""
-        return UIRegistry._ui
-
-    @staticmethod
-    def create(keymap):
-        """Create the user interface if it doesn't exist already.
-
-        The user interface is returned.
-
-        Args:
-            keymap (KeyMap): The keymap to use.
-        """
-        if UIRegistry._ui is None:
-            UIRegistry._ui = ui.UI(keymap)
-        return UIRegistry._ui
-
-    @staticmethod
-    def destroy():
-        """Destroy the user interface.
-
-        This method calls the user interface's destroy method.
-        """
-        UIRegistry._ui.destroy()
 
 
 class StatusBarRegistry:

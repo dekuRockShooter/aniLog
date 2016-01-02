@@ -72,8 +72,8 @@ class Browser(signals.Observer):
     END = 8
     PRIMARY_KEY = 'rowid'
 
-    def __init__(self, upper_left_coords, bot_right_coords,
-                 col_widths, db_name, table):
+    def __init__(self, db_name, table):
+        col_widths = positions.COL_WIDTHS
         try:
             self._db = shared.DBRegistry.get_db(db_name)
         except KeyError:
@@ -167,6 +167,7 @@ class Browser(signals.Observer):
         self._setup_curses()
         self._pad.clear()
         self._row_count = 0
+        self._cur_row = 0
         self._row_ids.clear()
         self._populate_browser(rows)
 
@@ -179,24 +180,26 @@ class Browser(signals.Observer):
         if self._pad != None:
             return
         curses.initscr()
-        self._pad = curses.newpad(self._END_ROW, self._END_COL) # height, width
+        self._END_ROW = positions.BROWSER_BOTTOM_RIGHT_COORDS[0] * 2
+        self._END_COL = positions.BROWSER_BOTTOM_RIGHT_COORDS[1] * 2
+        self._pad = curses.newpad(self._END_ROW, self._END_COL)
         self._pad.keypad(1)
         self._pad.leaveok(0)
-        self._scr_cols = curses.COLS
-        self._scr_rows = curses.LINES
 
     def _populate_browser(self, rows):
         """Write rows to the browser.
 
         The rows are written to the browser starting at the first
         empty line.  If there are not enough lines in the browser,
-        then it is resized.
+        then it is resized.  Nothing is done if rows is empty.
 
         Args:
             rows ([tuples]): The rows to display.  Each tuple
                 represents a row, and the elements in a tuple
                 represent the columns in the row.
         """
+        if not rows:
+            return
         if (self._row_count + len(rows)) > self._END_ROW:
             self._resize(2 * (self._row_count + len(rows)))
         for row in rows:
@@ -303,6 +306,10 @@ class Browser(signals.Observer):
         self.redraw()
 
     def on_screen_resize(self):
+        if self._END_ROW < positions.BROWSER_BOTTOM_RIGHT_COORDS[0]:
+            self._resize(
+                rows=positions.BROWSER_BOTTOM_RIGHT_COORDS[0] * 2,
+                cols=0)
         self._VIS_RNG = [positions.BROWSER_BOTTOM_RIGHT_COORDS[0] -
                              positions.BROWSER_UPPER_LEFT_COORDS[0],
                          positions.BROWSER_BOTTOM_RIGHT_COORDS[1] -
@@ -355,6 +362,9 @@ class Browser(signals.Observer):
     def receive_signal(self, signal, args=None):
         if signal is signals.Signal.SCREEN_RESIZED:
             self.on_screen_resize()
+            return
+        if BrowserRegistry.get_cur() is not self:
+            return
         elif signal is signals.Signal.ENTRY_INSERTED:
             self.on_entry_inserted()
         elif signal is signals.Signal.ENTRY_DELETED:
@@ -362,10 +372,11 @@ class Browser(signals.Observer):
         elif signal is signals.Signal.ENTRY_UPDATED:
             self.on_entry_updated()
         elif signal is signals.Signal.NEW_QUERY:
-            if BrowserRegistry.get_cur() is self:
-                self.on_new_query(args)
+            self.on_new_query(args)
 
     def scroll(self, direction, quantifier=1):
+        if self._row_count == 0:
+            return
         prev_cell_coords = self._col_coords[self._cur_col]
         prev_cell_val = self._pad.instr(self._cur_row, prev_cell_coords.beg,\
                 prev_cell_coords.sep - prev_cell_coords.beg)
@@ -483,8 +494,7 @@ class BrowserRegistry:
         BrowserRegistry._cur_idx = idx
 
     @staticmethod
-    def create(upper_left_coords, bot_right_coords,
-               col_widths, db_name, table):
+    def create(db_name, table):
         """Create and return a new browser.
 
         Create a browser within the given screen coordinates. The
@@ -508,8 +518,7 @@ class BrowserRegistry:
         name = '{}.{}'.format(db_name, table)
         if name in BrowserRegistry._browser_map:
             return BrowserRegistry._browser_map[name]
-        new_browser = Browser(upper_left_coords, bot_right_coords,
-                                      col_widths, db_name, table)
+        new_browser = Browser(db_name, table)
         BrowserRegistry._browser_map[name] = new_browser
         BrowserRegistry._browser_indexes.insert(BrowserRegistry._cur_idx + 1,
                                                new_browser)

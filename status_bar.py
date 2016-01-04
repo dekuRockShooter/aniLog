@@ -45,9 +45,11 @@ class StatusBar(signals.Observer):
         self._last_cmd_name = ''
         self._last_cmd_args = ''
         self._cmd_map = cmd_map
-        settings.keys.cmd_map['next_browser'].register(self)
-        settings.keys.cmd_map['prev_browser'].register(self)
-        settings.keys.cmd_map['resize'].register(self)
+
+        cmd_map = settings.keys.CommandMap.get()
+        cmd_map['next_browser'].register(self)
+        cmd_map['prev_browser'].register(self)
+        cmd_map['resize'].register(self)
 
     def _reposition(self, scr_row, cols):
         if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:

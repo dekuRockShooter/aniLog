@@ -30,8 +30,9 @@ class UI(signals.Observer):
         signals.Observer.__init__(self)
         self._win = None
         self._key_map = key_map
-        settings.keys.cmd_map['next_browser'].register(self)
-        settings.keys.cmd_map['prev_browser'].register(self)
+        cmd_map = settings.keys.CommandMap.get()
+        cmd_map['next_browser'].register(self)
+        cmd_map['prev_browser'].register(self)
 
     def create(self):
         """Start curses and create the user interface."""
@@ -45,7 +46,7 @@ class UI(signals.Observer):
 
     def _create_widgets(self):
         #status_bar.StatusBarRegistry.create(1, settings.keys.cmd_map).update()
-        tables = [('Watching'), ('backlog'), ('completed')]
+        tables = [('watching'), ('backlog'), ('completed')]
         for table in tables:
             try:
                 b = browser.BrowserRegistry.create(
@@ -58,7 +59,8 @@ class UI(signals.Observer):
                 #stat_bar.prompt(str(err), enums.Prompt.ERROR)
                 continue
             b.create()
-        status_bar.StatusBarRegistry.create(1, settings.keys.cmd_map).update()
+        status_bar.StatusBarRegistry.create(1,
+                settings.keys.CommandMap.get()).update()
 
     def _set_coords(self):
         curses.update_lines_cols()

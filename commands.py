@@ -46,14 +46,18 @@ class Command:
         pass
 
 
-class Scroll(Command):
+# TODO: emit a signal and remove the Browser reference.
+class Scroll(Command, signals.Subject):
     def __init__(self, direction, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
         self._direction = direction
 
     def execute(self):
         cur_browser = browser.BrowserRegistry.get_cur()
-        cur_browser.scroll(self._direction, self._quantifier)
+        #self.emit(signals.Signal.Scroll, self._direction)
+        if cur_browser is not None:
+            cur_browser.scroll(self._direction, self._quantifier)
 
 
 class EditCell(Command, signals.Subject):

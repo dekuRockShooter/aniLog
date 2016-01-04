@@ -124,3 +124,15 @@ class CopyBuffer:
             KeyError: if no buffer with the given name exists.
         """
         return CopyBuffer._copy_buffer[key]
+
+
+class SelectBuffer:
+    _select_buffer = []
+
+    @staticmethod
+    def set(rows):
+        SelectBuffer._select_buffer = rows
+
+    @staticmethod
+    def get():
+        return SelectBuffer._select_buffer

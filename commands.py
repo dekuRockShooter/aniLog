@@ -25,7 +25,7 @@ import enums
 import browser
 import status_bar
 import settings.positions as positions
-from shared import DBRegistry, CopyBuffer
+import shared
 
 
 class Command:
@@ -94,7 +94,7 @@ class EditCell(Command, signals.Subject):
         prim_key = args[: sep_idx]
         cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
-        cur_db = DBRegistry.get_db(db_name)
+        cur_db = shared.DBRegistry.get_db(db_name)
         s = 'update "{table}" set "{col_name}"="{value}"\
                 where "{primary_key}"="{id}"'.format(
                 table=cur_browser.get_table_name(),
@@ -117,7 +117,7 @@ class NewEntry(Command, signals.Subject):
         cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = DBRegistry.get_db(db_name)
+        cur_db = shared.DBRegistry.get_db(db_name)
         s = 'insert into "{table}" default values'.format(table=table_name)
         cur_db.execute(s)
         cur_db.commit()
@@ -143,14 +143,19 @@ class DeleteEntry(Command, signals.Subject):
         cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = DBRegistry.get_db(db_name)
-        s = 'delete from "{table}" where "{prim_key}"="{val}"'.format(
-                table=table_name,
-                prim_key=cur_browser.PRIMARY_KEY,
-                val=args)
-        cur_db.execute(s)
+        cur_db = shared.DBRegistry.get_db(db_name)
+        rowids = shared.SelectBuffer.get()
+        if not rowids:
+            rowids = [args]
+        for id in rowids:
+            s = 'delete from "{table}" where "{prim_key}"="{val}"'.format(
+                    table=table_name,
+                    prim_key=cur_browser.PRIMARY_KEY,
+                    val=id)
+            cur_db.execute(s)
         cur_db.commit()
         self.emit(signals.Signal.ENTRY_DELETED)
+        shared.SelectBuffer.set([])
 
 
 class CopyEntry(Command):
@@ -158,20 +163,26 @@ class CopyEntry(Command):
         cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = DBRegistry.get_db(db_name)
-        s = 'select * from "{table}" where "{prim_key}"="{val}"'.format(
-                table=table_name,
-                prim_key=cur_browser.PRIMARY_KEY,
-                val=cur_browser.get_prim_key())
-        row =  list(cur_db.execute(s)[0])
-        row[0] = 'null' # for autoincrementing the rowid
-        for idx, val in enumerate(row[1:], 1):
-            val = str(val)
-            # Make entries that have spaces work properly when pasting.
-            if val.startswith('"') and val.endswith('"'):
-                continue
-            row[idx] = '{}{}{}'.format('"', val, '"')
-        CopyBuffer.set(CopyBuffer.DEFAULT_KEY, tuple(row))
+        cur_db = shared.DBRegistry.get_db(db_name)
+        rowids = shared.SelectBuffer.get()
+        entries = []
+        if not rowids:
+            rowids = [str(cur_browser.get_prim_key())]
+        for id in rowids:
+            s = 'select * from "{table}" where "{prim_key}"="{val}"'.format(
+                    table=table_name,
+                    prim_key=cur_browser.PRIMARY_KEY,
+                    val=id)
+            row = list(cur_db.execute(s)[0])
+            row[0] = 'null' # for autoincrementing the rowid
+            for idx, val in enumerate(row[1:], 1):
+                val = str(val)
+                # Make entries that have spaces work properly when pasting.
+                if val.startswith('"') and val.endswith('"'):
+                    continue
+                row[idx] = '{}{}{}'.format('"', val, '"')
+            entries.append(tuple(row))
+        shared.CopyBuffer.set(shared.CopyBuffer.DEFAULT_KEY, entries)
 
 
 class PasteEntry(Command):
@@ -179,12 +190,14 @@ class PasteEntry(Command):
         cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = DBRegistry.get_db(db_name)
-        row = ','.join(CopyBuffer.get(CopyBuffer.DEFAULT_KEY))
-        s = 'insert into "{table}" values ({val})'.format(
-                table=table_name,
-                val=str(row))
-        cur_db.execute(s)
+        cur_db = shared.DBRegistry.get_db(db_name)
+        rows = shared.CopyBuffer.get(shared.CopyBuffer.DEFAULT_KEY)
+        for row in rows:
+            values = ','.join(row)
+            s = 'insert into "{table}" values ({val})'.format(
+                    table=table_name,
+                    val=values)
+            cur_db.execute(s)
         cur_db.commit()
         cur_browser.on_entry_inserted()
 
@@ -273,7 +286,7 @@ class Filter(Command, signals.Subject):
         col_name = cur_browser.get_col_name()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = DBRegistry.get_db(db_name)
+        cur_db = shared.DBRegistry.get_db(db_name)
         s = 'select * from "{table}" where "{col_name}" like \'%{val}%\''.\
                 format(table=table_name,
                        col_name=col_name,
@@ -299,7 +312,7 @@ class Sort(Command, signals.Subject):
         cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = DBRegistry.get_db(db_name)
+        cur_db = shared.DBRegistry.get_db(db_name)
         col_name = ''
         direction = self._direction
         if self._direction is None:
@@ -409,3 +422,59 @@ class Resize(Command, signals.Subject):
             positions.BROWSER_UPPER_LEFT_COORDS = (0, 0)
             positions.BROWSER_BOTTOM_RIGHT_COORDS = (curses.LINES - 2,
                                                     curses.COLS - 1)
+
+
+class Select(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
+    def execute(self):
+        stat_bar = status_bar.StatusBarRegistry.get()
+        args = stat_bar.get_cmd_args()
+        rowids = self._parse_args(args)
+        shared.SelectBuffer.set(rowids)
+        self.emit(signals.Signal.ENTRIES_SELECTED)
+
+    def _parse_args(self, arg_str):
+        if not arg_str:
+            return []
+        rowids = []
+        beg_idx = 0
+        arg_str_iter = iter(enumerate(arg_str))
+        for end_idx, letter in arg_str_iter:
+            if letter.isdigit():
+                continue
+            elif letter == ',':
+                rowid = arg_str[beg_idx : end_idx]
+                if rowid.isdigit():
+                    rowids.append(rowid)
+                    beg_idx = end_idx + 1
+                else:
+                    raise ValueError('Not an integer: {}'.format(rowid))
+            elif letter == '-':
+                max_rowid_end = arg_str.find(',', end_idx)
+                if max_rowid_end == -1:
+                    max_rowid_end = len(arg_str)
+                min_rowid = arg_str[beg_idx : end_idx]
+                max_rowid = arg_str[end_idx + 1 : max_rowid_end]
+                if min_rowid.isdigit() and max_rowid.isdigit():
+                    id_interval =\
+                        [str(x) for x in
+                         range(int(min_rowid), int(max_rowid) + 1)]
+                    rowids.extend(id_interval)
+                    # There are no more numbers to get.
+                    if max_rowid_end == len(arg_str):
+                        return rowids
+                    # Move to the first comma.
+                    while end_idx != max_rowid_end:
+                        end_idx, letter = next(arg_str_iter)
+                    beg_idx = end_idx + 1
+                else:
+                    raise ValueError('Not an integer: {}'.format(rowid))
+            else:
+                raise ValueError('Invalid syntax.')
+        # Don't forget to get the last number.
+        rowid = arg_str[beg_idx :]
+        rowids.append(rowid)
+        return rowids

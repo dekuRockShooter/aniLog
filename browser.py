@@ -1,5 +1,6 @@
 import math
 import curses
+import bisect
 import enums
 import shared
 import settings.positions as positions
@@ -120,13 +121,16 @@ class Browser(signals.Observer):
         self._set_col_coords(col_widths)
 
         self._pad = None
+        self._select_buffer = []
 
-        settings.keys.cmd_map['edit'].register(self)
-        settings.keys.cmd_map['new_entry'].register(self)
-        settings.keys.cmd_map['del_entry'].register(self)
-        settings.keys.cmd_map['sort'].register(self)
-        settings.keys.cmd_map['filter'].register(self)
-        settings.keys.cmd_map['resize'].register(self)
+        cmd_map = settings.keys.CommandMap.get()
+        cmd_map['edit'].register(self)
+        cmd_map['new_entry'].register(self)
+        cmd_map['del_entry'].register(self)
+        cmd_map['sort'].register(self)
+        cmd_map['filter'].register(self)
+        cmd_map['resize'].register(self)
+        cmd_map['select'].register(self)
 
     # TODO: Don't hardcode the beginning of the first column. It wont
     # necessarily be zero. Also, account for zero widths.
@@ -385,6 +389,8 @@ class Browser(signals.Observer):
             self.on_entry_updated()
         elif signal is signals.Signal.NEW_QUERY:
             self.on_new_query(args)
+        elif signal is signals.Signal.ENTRIES_SELECTED:
+            self._on_select()
 
     def scroll(self, direction, quantifier=1):
         if self._row_count == 0:
@@ -394,15 +400,11 @@ class Browser(signals.Observer):
                 prev_cell_coords.sep - prev_cell_coords.beg)
         prev_row = self._cur_row
         prev_col = self._cur_col
-        if (direction == enums.Scroll.DOWN) or\
-                (direction == enums.Scroll.UP):
+        if (direction == enums.Scroll.DOWN) or (direction == enums.Scroll.UP):
             if direction == enums.Scroll.UP:
                 self._cur_row = self._cur_row - quantifier
             else:
                 self._cur_row = self._cur_row + quantifier
-            #if self._cur_row > self._END_ROW - 2:
-                #self._cur_row = self._bot_row = self._END_ROW - 2
-                #self._top_row = self._bot_row - self._VIS_RNG[0]
             if self._cur_row > self._row_count - 1:
                 self._cur_row = self._bot_row = self._row_count - 1
                 self._top_row = self._bot_row - self._VIS_RNG[0]
@@ -434,13 +436,29 @@ class Browser(signals.Observer):
                 self._right_col = self._left_col + self._VIS_RNG[1]
 
         # highlight next line and scroll down
+        select_buffer = shared.SelectBuffer.get()
         cur_cell_coords = self._col_coords[self._cur_col]
-        self._pad.addstr(prev_row, prev_cell_coords.beg, prev_cell_val)
+        if str(self._row_ids[prev_row]) not in self._select_buffer:
+            self._pad.addstr(prev_row, prev_cell_coords.beg, prev_cell_val)
         cur_cell_val = self._pad.instr(self._cur_row, cur_cell_coords.beg,\
                 cur_cell_coords.sep - cur_cell_coords.beg)
         self._pad.addstr(self._cur_row, cur_cell_coords.beg, cur_cell_val,\
                 curses.A_STANDOUT)
         self.redraw()
+
+    def _on_select(self):
+        select_buffer = shared.SelectBuffer.get()
+        for id_str in self._select_buffer:
+            id = int(id_str)
+            row_idx = bisect.bisect_left(self._row_ids, id)
+            if row_idx != len(self._row_ids) and self._row_ids[row_idx] == id:
+                self._pad.chgat(row_idx, 0, -1, curses.A_NORMAL)
+        for id_str in select_buffer:
+            id = int(id_str)
+            row_idx = bisect.bisect_left(self._row_ids, id)
+            if row_idx != len(self._row_ids) and self._row_ids[row_idx] == id:
+                self._pad.chgat(row_idx, 0, -1, curses.A_STANDOUT)
+        self._select_buffer = select_buffer
 
 
 class BrowserRegistry:

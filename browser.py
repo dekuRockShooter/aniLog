@@ -392,6 +392,54 @@ class Browser(signals.Observer):
         elif signal is signals.Signal.ENTRIES_SELECTED:
             self._on_select()
 
+    def _lines_to_scroll(self, direction):
+        """Return the number of rows to scroll.
+
+        Args:
+            direction: The direction in which to scroll.  This can be
+                any of the enumerations in enums.Scroll.
+
+        Returns:
+            The number of rows to scroll (a positive or negative number).
+        """
+        if direction == enums.Scroll.UP:
+            return -1
+        elif direction == enums.Scroll.DOWN:
+            return 1
+        elif direction == enums.Scroll.PAGE_DOWN:
+            return self._VIS_RNG[0]
+        elif direction == enums.Scroll.PAGE_UP:
+            return -self._VIS_RNG[0]
+        elif direction == enums.Scroll.HOME:
+            return -self._row_count
+        elif direction == enums.Scroll.END:
+            return self._row_count
+
+    def _cols_to_scroll(self, direction):
+        """Return the number of columns to scroll.
+
+        A column is a database column.
+
+        Args:
+            direction: The direction in which to scroll.  This can be
+                any of the enumerations in enums.Scroll.
+
+        Returns:
+            The number of columns to scroll (a positive or negative number).
+        """
+        if direction == enums.Scroll.LEFT:
+            return -1
+        elif direction == enums.Scroll.RIGHT:
+            return 1
+        #elif direction == enums.Scroll.PAGE_RIGHT:
+            #return self._VIS_RNG[0]
+        #elif direction == enums.Scroll.PAGE_LEFT:
+            #return -self._VIS_RNG[0]
+        elif direction == enums.Scroll.H_HOME:
+            return -len(self._col_names)
+        elif direction == enums.Scroll.H_END:
+            return len(self._col_names)
+
     def scroll(self, direction, quantifier=1):
         if self._row_count == 0:
             return
@@ -400,11 +448,10 @@ class Browser(signals.Observer):
                 prev_cell_coords.sep - prev_cell_coords.beg)
         prev_row = self._cur_row
         prev_col = self._cur_col
-        if (direction == enums.Scroll.DOWN) or (direction == enums.Scroll.UP):
-            if direction == enums.Scroll.UP:
-                self._cur_row = self._cur_row - quantifier
-            else:
-                self._cur_row = self._cur_row + quantifier
+        if direction in (enums.Scroll.DOWN, enums.Scroll.UP,
+                         enums.Scroll.PAGE_DOWN, enums.Scroll.PAGE_UP,
+                         enums.Scroll.END, enums.Scroll.HOME):
+            self._cur_row = self._cur_row + self._lines_to_scroll(direction)
             if self._cur_row > self._row_count - 1:
                 self._cur_row = self._bot_row = self._row_count - 1
                 self._top_row = self._bot_row - self._VIS_RNG[0]
@@ -418,12 +465,10 @@ class Browser(signals.Observer):
                 self._top_row = self._cur_row
                 self._bot_row = self._top_row + self._VIS_RNG[0]
 
-        elif (direction == enums.Scroll.LEFT) or\
-                (direction == enums.Scroll.RIGHT):
-            if direction == enums.Scroll.LEFT:
-                self._cur_col = self._cur_col - quantifier
-            else:
-                self._cur_col = self._cur_col + quantifier
+        elif direction in (enums.Scroll.RIGHT, enums.Scroll.LEFT,
+                         enums.Scroll.PAGE_RIGHT, enums.Scroll.PAGE_LEFT,
+                         enums.Scroll.H_END, enums.Scroll.H_HOME):
+            self._cur_col = self._cur_col + self._cols_to_scroll(direction)
             if self._cur_col < 0:
                 self._cur_col = 0
             elif self._cur_col >= len(self._col_names):

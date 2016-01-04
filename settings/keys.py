@@ -1,5 +1,6 @@
 import commands
 import keymap
+import enums
 
 class CommandMap:
     cmd_map = {}
@@ -32,12 +33,28 @@ class KeyMap:
             return KeyMap.key_map
         cmd_map = CommandMap.get()
         KeyMap.key_map = keymap.KeyMap(keymap.AniLogKeyParser())
-        KeyMap.key_map.add_key('k',commands.ScrollUp('', ''))
-        KeyMap.key_map.add_key('j',commands.ScrollDown('', ''))
-        KeyMap.key_map.add_key('h',commands.ScrollLeft('', ''))
-        KeyMap.key_map.add_key('l',commands.ScrollRight('', ''))
+        KeyMap.key_map.add_key('k', commands.Scroll(
+            enums.Scroll.UP, '', ''))
+        KeyMap.key_map.add_key('j', commands.Scroll(
+            enums.Scroll.DOWN, '', ''))
+        KeyMap.key_map.add_key('h', commands.Scroll(
+            enums.Scroll.LEFT, '', ''))
+        KeyMap.key_map.add_key('l', commands.Scroll(
+            enums.Scroll.RIGHT, '', ''))
+        KeyMap.key_map.add_key('gg', commands.Scroll(
+            enums.Scroll.HOME, '', ''))
+        KeyMap.key_map.add_key('G', commands.Scroll(
+            enums.Scroll.END, '', ''))
+        KeyMap.key_map.add_key('<Ctrl-b>', commands.Scroll(
+            enums.Scroll.PAGE_UP, '', ''))
+        KeyMap.key_map.add_key('<Ctrl-f>', commands.Scroll(
+            enums.Scroll.PAGE_DOWN, '', ''))
+        KeyMap.key_map.add_key('^', commands.Scroll(
+            enums.Scroll.H_HOME, '', ''))
+        KeyMap.key_map.add_key('$', commands.Scroll(
+            enums.Scroll.H_END, '', ''))
         KeyMap.key_map.add_key('i', cmd_map['new_entry'])
-        KeyMap.key_map.add_key('y',commands.CopyEntry('', ''))
+        KeyMap.key_map.add_key('yy',commands.CopyEntry('', ''))
         KeyMap.key_map.add_key('p',commands.PasteEntry('', ''))
         KeyMap.key_map.add_key('gt', cmd_map['next_browser'])
         KeyMap.key_map.add_key('gT', cmd_map['prev_browser'])

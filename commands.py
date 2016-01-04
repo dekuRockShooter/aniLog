@@ -4,10 +4,7 @@
 
     Classes:
         Command: The interface for all commands.
-        ScrollDown: scroll down in the browser.
-        ScrollUp: scroll up in the browser.
-        ScrollLeft: scroll left in the browser.
-        ScrollRight: scroll right in the browser.
+        Scroll: Scroll the browser.
         EditCell: edit the current cell's value.
         NewEntry: Add a new entry to the browser.
         DeleteEntry: Delete the current entry.
@@ -49,28 +46,14 @@ class Command:
         pass
 
 
-class ScrollDown(Command):
+class Scroll(Command):
+    def __init__(self, direction, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        self._direction = direction
+
     def execute(self):
         cur_browser = browser.BrowserRegistry.get_cur()
-        cur_browser.scroll(enums.Scroll.DOWN, self._quantifier)
-
-
-class ScrollUp(Command):
-    def execute(self):
-        cur_browser = browser.BrowserRegistry.get_cur()
-        cur_browser.scroll(enums.Scroll.UP, self._quantifier)
-
-
-class ScrollLeft(Command):
-    def execute(self):
-        cur_browser = browser.BrowserRegistry.get_cur()
-        cur_browser.scroll(enums.Scroll.LEFT, self._quantifier)
-
-
-class ScrollRight(Command):
-    def execute(self):
-        cur_browser = browser.BrowserRegistry.get_cur()
-        cur_browser.scroll(enums.Scroll.RIGHT, self._quantifier)
+        cur_browser.scroll(self._direction, self._quantifier)
 
 
 class EditCell(Command, signals.Subject):
@@ -232,6 +215,7 @@ class PreviousBrowser(Command, signals.Subject):
         self.emit(signals.Signal.BROWSER_SWITCHED)
 
 
+# TODO: usage: open_table [db] table
 class NewBrowser(Command, signals.Subject):
     def __init__(self, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)

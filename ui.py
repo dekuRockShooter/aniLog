@@ -45,20 +45,20 @@ class UI(signals.Observer):
         self._create_widgets()
 
     def _create_widgets(self):
-        #status_bar.StatusBarRegistry.create(1, settings.keys.cmd_map).update()
-        tables = [('watching'), ('backlog'), ('completed')]
-        for table in tables:
-            try:
-                b = browser.BrowserRegistry.create(
-                       positions.DEFAULT_DB_NAME,
-                       table)
-            except FileNotFoundError as err:
-                #stat_bar.prompt(str(err), enums.Prompt.ERROR)
-                continue
-            except ValueError as err:
-                #stat_bar.prompt(str(err), enums.Prompt.ERROR)
-                continue
-            b.create()
+        ##status_bar.StatusBarRegistry.create(1, settings.keys.cmd_map).update()
+        #tables = [('watching'), ('backlog'), ('completed')]
+        #for table in tables:
+            #try:
+                #b = browser.BrowserRegistry.create(
+                       #positions.DEFAULT_DB_NAME,
+                       #table)
+            #except FileNotFoundError as err:
+                ##stat_bar.prompt(str(err), enums.Prompt.ERROR)
+                #continue
+            #except ValueError as err:
+                ##stat_bar.prompt(str(err), enums.Prompt.ERROR)
+                #continue
+            #b.create()
         status_bar.StatusBarRegistry.create(1,
                 settings.keys.CommandMap.get()).update()
 

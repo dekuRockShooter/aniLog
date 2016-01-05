@@ -42,6 +42,8 @@ class DBConnection:
         """
         if not os.path.exists(self._name):
             raise FileNotFoundError(self._name)
+        if self._cursor:
+            return
         self._connection = sqlite3.connect(self._name)
         self._cursor = self._connection.cursor()
         s = 'select name from sqlite_master where type="table"'
@@ -55,7 +57,7 @@ class DBConnection:
     def get_primary_keys(self, table_name):
         if not self._connection:
             raise self._no_connect_err
-        statement = 'pragma table_info({table})'.format(table=table_name)
+        statement = 'pragma table_info("{table}")'.format(table=table_name)
         rows = self._cursor.execute(statement)
         prim_keys = []
         for row in rows:
@@ -78,7 +80,7 @@ class DBConnection:
         """
         if not self._connection:
             raise self._no_connect_err
-        statement = 'pragma table_info({table})'.format(table=table_name)
+        statement = 'pragma table_info("{table}")'.format(table=table_name)
         rows = self._cursor.execute(statement)
         col_names = []
         for row in rows:
@@ -101,7 +103,7 @@ class DBConnection:
         """
         if not self._connection:
             raise self._no_connect_err
-        self._cursor.execute('select * from {}'.format(table))
+        self._cursor.execute('select * from "{}"'.format(table))
         return self._cursor.fetchall()
 
     def get_newest(self, table_name):

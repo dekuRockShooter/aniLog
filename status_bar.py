@@ -130,7 +130,8 @@ class StatusBar(signals.Observer):
             self._cmd_map[self._last_cmd_name].execute()
             self.update()
         except KeyError:
-            self.prompt('That command does not exist.', enums.Prompt.ERROR)
+            self.prompt("Command '{cmd_name}' does not exist.".format(
+                cmd_name=self._last_cmd_name), enums.Prompt.ERROR)
 
     def prompt(self, prompt_str, mode):
         """Show a message.

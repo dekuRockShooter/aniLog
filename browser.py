@@ -124,6 +124,7 @@ class Browser(signals.Observer):
         self._select_buffer = []
 
         cmd_map = settings.keys.CommandMap.get()
+        cmd_map['update'].register(self)
         cmd_map['edit'].register(self)
         cmd_map['new_entry'].register(self)
         cmd_map['del_entry'].register(self)
@@ -506,6 +507,65 @@ class Browser(signals.Observer):
         self._select_buffer = select_buffer
 
 
+class BrowserBuffer(signals.Observer):
+    # _name_map (int -> str): a map from browser id's to browser names.
+    # _browser_map (str -> browser): a map from browser names to browsers.
+    def __init__(self):
+        # String to Browser.  The string should be an ID number or a path.
+        self._name_map = {}
+        self._browser_map = {}
+        curses.initscr()
+        self._END_ROW = 2
+        self._pad = curses.newpad(self._END_ROW, curses.COLS)
+        self._id = 0
+        self._cur = None
+        self._prev = None
+        cmd_map = settings.keys.CommandMap.get()
+        cmd_map['ls'].register(self)
+
+    def add(self, name, browser):
+        self._name_map[self._id] = name
+        self._browser_map[name] = browser
+        self._id = self._id + 1
+
+    def remove(self, id=None, name=None):
+        if id is not None:
+            name = self._name_map.pop(id)
+            self._browser_map.pop(name)
+        elif name is not None:
+            id = (v for v in self._name_map.values() if v == name)
+            self._name_map.pop(next(id))
+            self._browser_map.pop(name)
+
+    def get(self, id=None, name=None):
+        if id is not None:
+            name = self._name_map[id]
+            return self._browser_map[name]
+        elif name is not None:
+            return self._browser_map[name]
+
+    def _update(self):
+        if len(self._name_map) > self._END_ROW:
+            self._END_ROW = len(self._name_map)
+            self._pad.resize(self._END_ROW * 2, curses.COLS)
+        row_count = 0
+        for id, name in self._name_map.items():
+            self._pad.addstr(row_count, 0, str(id).ljust(4))
+            self._pad.addstr(row_count, 8, name)
+            row_count = row_count + 1
+
+    def redraw(self):
+        self._update()
+        top_row = curses.LINES - len(self._name_map) - 2
+        if top_row < 0:
+            top_row = int(curses.LINES / 2) - 1
+        self._pad.refresh(0, 0, top_row, 0, curses.LINES - 1, curses.COLS - 1)
+
+    def receive_signal(self, signal, args=None):
+        if signal is signals.Signal.SHOW_BUFFERS:
+            self.redraw()
+
+
 class BrowserRegistry:
     """Manage all browsers.
 
@@ -525,6 +585,7 @@ class BrowserRegistry:
     _browser_indexes = []
     _cur_browser = None
     _cur_idx = -1
+    _browser_buffer = None
 
     @staticmethod
     def get_cur():
@@ -593,11 +654,14 @@ class BrowserRegistry:
         name = '{}.{}'.format(db_name, table)
         if name in BrowserRegistry._browser_map:
             return BrowserRegistry._browser_map[name]
+        if BrowserRegistry._browser_buffer is None:
+            BrowserRegistry._browser_buffer = BrowserBuffer()
         new_browser = Browser(db_name, table)
         BrowserRegistry._browser_map[name] = new_browser
         BrowserRegistry._browser_indexes.insert(BrowserRegistry._cur_idx + 1,
                                                new_browser)
         BrowserRegistry.set_cur(BrowserRegistry._cur_idx + 1)
+        BrowserRegistry._browser_buffer.add(name, new_browser)
         return new_browser
 
     @staticmethod

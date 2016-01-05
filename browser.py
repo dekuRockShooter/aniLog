@@ -380,7 +380,8 @@ class Browser(signals.Observer):
         if signal is signals.Signal.SCREEN_RESIZED:
             self.on_screen_resize()
             return
-        if BrowserRegistry.get_cur() is not self:
+        buffer = BrowserRegistry.get_buffer()
+        if (buffer is None) or (buffer.get() is not self):
             return
         elif signal is signals.Signal.ENTRY_INSERTED:
             self.on_entry_inserted()
@@ -511,7 +512,6 @@ class BrowserBuffer(signals.Observer):
     # _name_map (int -> str): a map from browser id's to browser names.
     # _browser_map (str -> browser): a map from browser names to browsers.
     def __init__(self):
-        # String to Browser.  The string should be an ID number or a path.
         self._name_map = {}
         self._browser_map = {}
         curses.initscr()
@@ -522,6 +522,9 @@ class BrowserBuffer(signals.Observer):
         self._prev = None
         cmd_map = settings.keys.CommandMap.get()
         cmd_map['ls'].register(self)
+
+    def name_generator(self):
+        return (item for item in self._name_map.items())
 
     def add(self, name, browser):
         self._name_map[self._id] = name
@@ -543,6 +546,27 @@ class BrowserBuffer(signals.Observer):
             return self._browser_map[name]
         elif name is not None:
             return self._browser_map[name]
+        else:
+            return self._cur
+
+    def set_cur_from_id(self, id):
+        """Set the current browser to the one with the given id.
+
+        Raises:
+            KeyError: If no browser has the given id.
+        """
+        name = self._name_map[id]
+        self.set_cur_from_name(name)
+
+    def set_cur_from_name(self, name):
+        """Set the current browser to the one with the given name.
+
+        Raises:
+            KeyError: If no browser has the given name.
+        """
+        self._prev = self._cur
+        self._cur = self._browser_map[name]
+        self._cur.redraw()
 
     def _update(self):
         if len(self._name_map) > self._END_ROW:
@@ -551,6 +575,12 @@ class BrowserBuffer(signals.Observer):
         row_count = 0
         for id, name in self._name_map.items():
             self._pad.addstr(row_count, 0, str(id).ljust(4))
+            if self._browser_map[name] is self._cur:
+                self._pad.addstr(row_count, 6, '%')
+            elif self._browser_map[name] is self._prev:
+                self._pad.addstr(row_count, 6, '#')
+            else:
+                self._pad.addstr(row_count, 6, ' ')
             self._pad.addstr(row_count, 8, name)
             row_count = row_count + 1
 
@@ -591,6 +621,12 @@ class BrowserRegistry:
     def get_cur():
         """Return the current browser."""
         return BrowserRegistry._cur_browser
+
+    @staticmethod
+    def get_buffer():
+        #if BrowserRegistry._browser_buffer is None:
+            #raise ValueError('Buffer is empty.')
+        return BrowserRegistry._browser_buffer
 
     @staticmethod
     def get_cur_idx():
@@ -660,8 +696,10 @@ class BrowserRegistry:
         BrowserRegistry._browser_map[name] = new_browser
         BrowserRegistry._browser_indexes.insert(BrowserRegistry._cur_idx + 1,
                                                new_browser)
-        BrowserRegistry.set_cur(BrowserRegistry._cur_idx + 1)
+        #BrowserRegistry.set_cur(BrowserRegistry._cur_idx + 1)
         BrowserRegistry._browser_buffer.add(name, new_browser)
+        BrowserRegistry._browser_buffer.get(name=name).create()
+        BrowserRegistry._browser_buffer.set_cur_from_name(name)
         return new_browser
 
     @staticmethod

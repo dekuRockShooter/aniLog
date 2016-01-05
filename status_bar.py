@@ -62,13 +62,18 @@ class StatusBar(signals.Observer):
             self.update()
 
     # TODO: this seems useless. update is a better fit for what this
-    # tries to do.
+    # tries to do.  This string should be determined by the user and created
+    # by something else.  Then that object should call the prompt method
+    # to update the string.
+
     def create(self):
         """Update the status bar string.
 
         This method updates the string to be displayed in the status bar.
         """
         cur_browser = browser.BrowserRegistry.get_cur()
+        if cur_browser is None:
+            return
         name = cur_browser.get_name()
         idx = browser.BrowserRegistry.get_cur_idx() + 1
         browser_count = browser.BrowserRegistry.get_count()

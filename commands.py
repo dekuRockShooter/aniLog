@@ -466,3 +466,12 @@ class Select(Command, signals.Subject):
         rowid = arg_str[beg_idx :]
         rowids.append(rowid)
         return rowids
+
+
+class ShowBuffers(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
+    def execute(self):
+        self.emit(signals.Signal.SHOW_BUFFERS)

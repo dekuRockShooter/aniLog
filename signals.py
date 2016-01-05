@@ -9,6 +9,8 @@ class Signal(enum.Enum):
     SCREEN_RESIZED = 5
     BROWSER_SWITCHED = 6
     ENTRIES_SELECTED = 7
+    BROWSER_OPENED = 8
+    SHOW_BUFFERS = 9
 
 
 class Subject:

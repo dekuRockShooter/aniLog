@@ -11,15 +11,16 @@ class CommandMap:
             return CommandMap.cmd_map
         CommandMap.cmd_map = {
             'filter': commands.Filter('', ''),
-            'edit': commands.EditCell('', ''),
+            'update': commands.EditCell('', ''),
             'new_entry': commands.NewEntry('', ''),
             'del_entry': commands.DeleteEntry('', ''),
             'sort': commands.Sort('', ''),
             'next_browser': commands.NextBrowser('', ''),
             'prev_browser': commands.PreviousBrowser('', ''),
             'resize': commands.Resize('', ''),
-            'new_browser': commands.NewBrowser('', ''),
+            'edit': commands.NewBrowser('', ''),
             'select': commands.Select('', ''),
+            'ls': commands.ShowBuffers('', ''),
             }
         return CommandMap.cmd_map
 
@@ -59,8 +60,8 @@ class KeyMap:
         KeyMap.key_map.add_key('gt', cmd_map['next_browser'])
         KeyMap.key_map.add_key('gT', cmd_map['prev_browser'])
         KeyMap.key_map.add_key(':',commands.Write('', '', ''))
-        KeyMap.key_map.add_key('c',commands.Write('edit %p %v', '', ""))
-        KeyMap.key_map.add_key('d',commands.Write('del_entry %p', '', ''))
+        KeyMap.key_map.add_key('c',commands.Write('update %p %v', '', ""))
+        KeyMap.key_map.add_key('dd',commands.Write('del_entry %p', '', ''))
         KeyMap.key_map.add_key('/',commands.Write('filter ', '', ''))
         KeyMap.key_map.add_key('<Rsz>', cmd_map['resize'])
         return KeyMap.key_map

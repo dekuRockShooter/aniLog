@@ -9,6 +9,7 @@ class CommandMap:
     def get():
         if CommandMap.cmd_map:
             return CommandMap.cmd_map
+        clone_cmd = commands.CloneTable('', '')
         CommandMap.cmd_map = {
             'filter': commands.Filter('', ''),
             'update': commands.EditCell('', ''),
@@ -21,6 +22,8 @@ class CommandMap:
             'edit': commands.NewBrowser('', ''),
             'select': commands.Select('', ''),
             'ls': commands.ShowBuffers('', ''),
+            'clone': clone_cmd,
+            'clone!': clone_cmd
             }
         return CommandMap.cmd_map
 

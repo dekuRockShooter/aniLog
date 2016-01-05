@@ -17,6 +17,7 @@
         Write: Write a string to the command line.
 """
 import curses
+import re
 import signals
 import enums
 import browser
@@ -54,10 +55,13 @@ class Scroll(Command, signals.Subject):
         self._direction = direction
 
     def execute(self):
-        cur_browser = browser.BrowserRegistry.get_cur()
+        #cur_browser = browser.BrowserRegistry.get_cur()
+        buffer = browser.BrowserRegistry.get_buffer()
         #self.emit(signals.Signal.Scroll, self._direction)
-        if cur_browser is not None:
-            cur_browser.scroll(self._direction, self._quantifier)
+        if buffer is None:
+            return
+        cur_browser = buffer.get()
+        cur_browser.scroll(self._direction, self._quantifier)
 
 
 class EditCell(Command, signals.Subject):
@@ -79,7 +83,7 @@ class EditCell(Command, signals.Subject):
         except ValueError:
             sep_idx = len(args)
         prim_key = args[: sep_idx]
-        cur_browser = browser.BrowserRegistry.get_cur()
+        cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
         cur_db = shared.DBRegistry.get_db(db_name)
         s = 'update "{table}" set "{col_name}"="{value}"\
@@ -95,13 +99,57 @@ class EditCell(Command, signals.Subject):
         cur_browser.on_entry_updated()
 
 
+# TODO: The table created by clone! requires a restart to display.
+class CloneTable(Command, signals.Subject):
+    """Clone a table.
+
+    clone tbl makes an empty table name tbl with the same schema as the
+        current table.
+    clone! tbl copies all or selected rows from the current table to
+        the new table named tbl.
+    """
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
+    def execute(self):
+        rowids = shared.SelectBuffer.get()
+        stat_bar = status_bar.StatusBarRegistry.get()
+        cur_browser = browser.BrowserRegistry.get_buffer().get()
+        db_name = cur_browser.get_db_name()
+        table_name = cur_browser.get_table_name()
+        cur_db = shared.DBRegistry.get_db(db_name)
+        clone_table_name = stat_bar.get_cmd_args()
+        if not clone_table_name:
+            return
+        # New blank table with the same schema as the original table.
+        s = 'select sql from sqlite_master where\
+                type="table" and name="{original_table}"'.format(
+                        original_table=table_name)
+        schema = cur_db.execute(s)[0][0]
+        s = schema.replace(table_name, clone_table_name, 1)
+        cur_db.execute(s)
+        if stat_bar.get_cmd_name().endswith('!'):
+            s = 'insert into "{clone}" select * from "{original}"'.format(
+                    clone=clone_table_name,
+                    original=table_name)
+            if rowids:
+                where_clause = ' where rowid in ({selected_ids})'.format(
+                        selected_ids=','.join(rowids))
+                s += where_clause
+            cur_db.execute(s)
+        cur_db.commit()
+        #self.emit(signals.Signal.ENTRY_INSERTED)
+
+
 class NewEntry(Command, signals.Subject):
     def __init__(self, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)
         signals.Subject.__init__(self)
 
     def execute(self):
-        cur_browser = browser.BrowserRegistry.get_cur()
+        #cur_browser = browser.BrowserRegistry.get_cur()
+        cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
         cur_db = shared.DBRegistry.get_db(db_name)
@@ -109,6 +157,7 @@ class NewEntry(Command, signals.Subject):
         cur_db.execute(s)
         cur_db.commit()
         self.emit(signals.Signal.ENTRY_INSERTED)
+        cur_browser.redraw()
 
 
 class DeleteEntry(Command, signals.Subject):
@@ -127,7 +176,8 @@ class DeleteEntry(Command, signals.Subject):
                                       enums.Prompt.CONFIRM)
         if reply == ord('n'):
             return
-        cur_browser = browser.BrowserRegistry.get_cur()
+        #cur_browser = browser.BrowserRegistry.get_cur()
+        cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
         cur_db = shared.DBRegistry.get_db(db_name)
@@ -147,7 +197,8 @@ class DeleteEntry(Command, signals.Subject):
 
 class CopyEntry(Command):
     def execute(self):
-        cur_browser = browser.BrowserRegistry.get_cur()
+        cur_browser = browser.BrowserRegistry.get_buffer().get()
+        #cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
         cur_db = shared.DBRegistry.get_db(db_name)
@@ -174,7 +225,8 @@ class CopyEntry(Command):
 
 class PasteEntry(Command):
     def execute(self):
-        cur_browser = browser.BrowserRegistry.get_cur()
+        #cur_browser = browser.BrowserRegistry.get_cur()
+        cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
         cur_db = shared.DBRegistry.get_db(db_name)
@@ -226,40 +278,103 @@ class NewBrowser(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
+        buffer = browser.BrowserRegistry.get_buffer()
         stat_bar = status_bar.StatusBarRegistry.get()
         args = stat_bar.get_cmd_args()
+        name = ''
+        names = []
+        db_name = ''
+        table_names = []
         try:
-            db_name, table_name = self._parse(args)
+            names = self._parse(args)
         except ValueError as err:
             stat_bar.prompt(str(err), enums.Prompt.ERROR)
             return
+        # Open an existing buffer based on a regex pattern.
+        if len(names) == 1 and names[0].startswith('/'):
+            regex = names[0][1:-1]
+            pattern = re.compile(regex)
+            name_gen = buffer.name_generator()
+            for id, name in iter(name_gen):
+                if pattern.search(name) is not None:
+                    buffer.set_cur_from_name(name)
+                    return
+        # Open an existing buffer based on an id.
+        elif len(names) == 1 and names[0].isdigit():
+            buffer.set_cur_from_id(int(names[0]))
+            return
+        # Open a new buffer with the given database and table.
+        elif names[1] != '*':
+            db_name = names[0]
+            table_names.append((names[1],))
+        elif names[1] == '*':
+            db_name = names[0]
+            new_db = shared.DBRegistry.create(db_name)
+            new_db.connect()
+            table_names = new_db.get_tables()
         try:
-            brw = browser.BrowserRegistry.create(db_name, table_name)
+            for name in table_names:
+                table_name = name[0]
+                brw = browser.BrowserRegistry.create(db_name, table_name)
         except FileNotFoundError as err:
             stat_bar.prompt(str(err), enums.Prompt.ERROR)
             return
         except ValueError as err:
             stat_bar.prompt(str(err), enums.Prompt.ERROR)
             return
-        brw.create()
 
     def _parse(self, args):
-        stat_bar = status_bar.StatusBarRegistry.get()
-        arg_list = args.split()
-        if len(arg_list) < 2:
-            raise ValueError('Usage: db_name table_name')
-        # db name and table name contain no spaces.
-        if len(arg_list) == 2:
-            return arg_list
-        # at least one arg is enclosed in quotes.
-        sep_idx = args.find('"', 1)
-        if sep_idx  == -1:
-            raise ValueError('Names with spaces go in quotes.')
-        if args[sep_idx + 1] == ' ':
-            sep_idx = sep_idx + 1
-        elif args[sep_idx - 1] != ' ':
-            raise ValueError('Usage: db_name table_name')
-        return [args[: sep_idx], args[sep_idx:].strip()]
+            """Return a combination of db name, table name, and id.
+
+            Returns:
+                A list with one element if the argument given was an id.
+                A list with two elements if only one argument was given,
+                    which is presumed to be a table name.  The second
+                    element is None.
+                A list with three elements if two arguments were given.
+                    The first and second elements are the database and
+                    table name, respectively.  The third element is Null.
+
+            Raises:
+                ValueError: if the arguments have invalid syntax.
+            """
+            names = []
+            try:
+                self._parse_helper(names, args, 0)
+            except ValueError as err:
+                print(str(err))
+                pass
+            return names
+
+    def _parse_helper(self, names, args, beg_idx):
+        if args == '':
+            names.append(None)
+            return
+        name_end = -1
+        name = ''
+        if args.isdigit():
+            names.append(args)
+            return
+        elif args.startswith('/') and args.endswith('/'):
+            names.append(args)
+            return
+        elif args[0] in ('"', "'"):
+            if args[beg_idx] == '"':
+                name_end = args.find('"', beg_idx + 1)
+            else:
+                name_end = args.find("'", beg_idx + 1)
+            if name_end == -1:
+                raise ValueError('Missing closing quotes.')
+            beg_idx = beg_idx + 1
+        else:
+            name_end = args.find(' ', 1)
+            if name_end == -1:
+                name_end = len(args)
+        name = args[beg_idx : name_end]
+        names.append(name)
+        self._parse_helper(names, args[name_end + 1:].strip(), 0)
+        if len(names) > 3:
+            raise ValueError('Syntax error.')
 
 
 class Filter(Command, signals.Subject):
@@ -270,7 +385,8 @@ class Filter(Command, signals.Subject):
     def execute(self):
         stat_bar = status_bar.StatusBarRegistry.get()
         arg = stat_bar.get_cmd_args()
-        cur_browser = browser.BrowserRegistry.get_cur()
+        #cur_browser = browser.BrowserRegistry.get_cur()
+        cur_browser = browser.BrowserRegistry.get_buffer().get()
         col_name = cur_browser.get_col_name()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
@@ -297,7 +413,8 @@ class Sort(Command, signals.Subject):
     # DES and just have then be command line arguments.  The code would be
     # much easier to follow.
     def execute(self):
-        cur_browser = browser.BrowserRegistry.get_cur()
+        #cur_browser = browser.BrowserRegistry.get_cur()
+        cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
         cur_db = shared.DBRegistry.get_db(db_name)
@@ -365,7 +482,11 @@ class Write(Command):
         Raises:
             ValueError: if cmd_str contains invalid macros.
         """
-        cur_browser = browser.BrowserRegistry.get_cur()
+        #cur_browser = browser.BrowserRegistry.get_cur()
+        buffer = browser.BrowserRegistry.get_buffer()
+        if not buffer:
+            return ''
+        cur_browser = buffer.get()
         possible_macro = False
         expanded_str = []
         for letter in cmd_str:

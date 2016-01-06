@@ -722,10 +722,12 @@ class BrowserRegistry:
             table_name: The name of the table to use.
         """
         name = '{}.{}'.format(db_name, table)
-        if name in BrowserRegistry._browser_map:
-            return BrowserRegistry._browser_map[name]
         if BrowserRegistry._browser_buffer is None:
             BrowserRegistry._browser_buffer = BrowserBuffer()
+        name_gen = BrowserRegistry._browser_buffer.name_generator()
+        for id, browser_name in iter(name_gen):
+            if browser_name == name:
+                return BrowserRegistry._browser_buffer.get(name=name)
         new_browser = Browser(db_name, table)
         BrowserRegistry._browser_map[name] = new_browser
         BrowserRegistry._browser_indexes.insert(BrowserRegistry._cur_idx + 1,

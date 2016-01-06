@@ -526,6 +526,9 @@ class BrowserBuffer(signals.Observer):
     def name_generator(self):
         return (item for item in self._name_map.items())
 
+    def browser_generator(self):
+        return (browser for browser in self._browser_map.items())
+
     def add(self, name, browser):
         assert(isinstance(browser, Browser))
         self._name_map[self._id] = name

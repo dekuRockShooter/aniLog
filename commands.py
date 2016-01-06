@@ -16,6 +16,7 @@
         Sort: Sort the entries.
         Write: Write a string to the command line.
 """
+import json
 import curses
 import re
 import signals
@@ -649,3 +650,32 @@ class ShowBuffers(Command, signals.Subject):
 
     def execute(self):
         self.emit(signals.Signal.SHOW_BUFFERS)
+
+
+class SaveSession(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
+    def execute(self):
+        buffer = browser.BrowserRegistry.get_buffer()
+        stat_bar = status_bar.StatusBarRegistry.get()
+        args = stat_bar.get_cmd_args()
+        table_name = ''
+        db_name = ''
+        if not args:
+            stat_bar.prompt('usage: mksession session_name',
+                    enums.Prompt.ERROR)
+            return
+        if buffer is None:
+            stat_bar.prompt('Cannot save an empty session.',
+                    enums.Prompt.ERROR)
+            return
+        session = open(args, 'w')
+        for name, table in iter(buffer.browser_generator()):
+            table_name = table.get_table_name()
+            db_name = table.get_db_name()
+            json.dump((db_name, table_name), session)
+            session.write('\n')
+        session.close()
+        #self.emit(signals.Signal.SHOW_BUFFERS)

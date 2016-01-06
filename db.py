@@ -40,10 +40,10 @@ class DBConnection:
         Raises;
             FileNotFoundError: If the database does not exist.
         """
+        if self._connection is not None:
+            return
         if not os.path.exists(self._name):
             raise FileNotFoundError(self._name)
-        if self._cursor:
-            return
         self._connection = sqlite3.connect(self._name)
         self._cursor = self._connection.cursor()
         s = 'select name from sqlite_master where type="table"'
@@ -129,6 +129,8 @@ class DBConnection:
         return self._cursor.fetchone()
 
     def get_tables(self):
+        s = 'select name from sqlite_master where type="table"'
+        self._table_names = self.execute(s)
         return self._table_names
 
     def execute(self, statement):

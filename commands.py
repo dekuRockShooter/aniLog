@@ -294,6 +294,44 @@ class RemoveTable(Command, signals.Subject):
             stat_bar.prompt('Cannot remove last table.', enums.Prompt.CONFIRM)
 
 
+class SwitchTable(Command, signals.Subject):
+    """Switch to another table in the buffer.
+
+    Usage:
+        b id
+        b regex
+        There is ambiguity if the regex is a number.  First, it is
+        treated as an id.  If no matching id is found, then it is
+        treated as a regex.
+    """
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
+    def execute(self):
+        buffer = browser.BrowserRegistry.get_buffer()
+        stat_bar = status_bar.StatusBarRegistry.get()
+        args = stat_bar.get_cmd_args()
+        if not args:
+            stat_bar.prompt('usage: b id/regex', enums.Prompt.ERROR)
+            return
+        try:
+            buffer.set_cur_from_id(int(args))
+        except KeyError:
+            pass
+        except ValueError:
+            pass
+        try:
+            pattern = re.compile(args)
+            name_gen = buffer.name_generator()
+            for id, name in iter(name_gen):
+                if pattern.search(name) is not None:
+                    buffer.set_cur_from_name(name)
+                    return
+        except KeyError:
+            stat_bar.prompt('No matching table found.', enums.Prompt.ERROR)
+
+
 # TODO: usage: edit [db] table.  At the moment, this opens a new table
 # as well as switches to an existing table.  A better implementation would
 # be to split these behaviors into two seperate commands.  Also, edit db *

@@ -25,6 +25,7 @@ class CommandMap:
             'clone': clone_cmd,
             'clone!': clone_cmd,
             'bd': commands.RemoveTable('', ''),
+            'b': commands.SwitchTable('', ''),
             }
         return CommandMap.cmd_map
 

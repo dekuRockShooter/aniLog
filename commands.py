@@ -139,7 +139,6 @@ class CloneTable(Command, signals.Subject):
                 s += where_clause
             cur_db.execute(s)
         cur_db.commit()
-        cur_db = shared.DBRegistry.update_db(db_name)
         #self.emit(signals.Signal.ENTRY_INSERTED)
 
 
@@ -332,7 +331,7 @@ class SwitchTable(Command, signals.Subject):
             stat_bar.prompt('No matching table found.', enums.Prompt.ERROR)
 
 
-# TODO: usage: edit [db] table.  At the moment, this opens a new table
+# TODO: usage: edit db table.  At the moment, this opens a new table
 # as well as switches to an existing table.  A better implementation would
 # be to split these behaviors into two seperate commands.  Also, edit db *
 # breaks the command; no more tables can be added (switching works fine).
@@ -353,25 +352,12 @@ class NewBrowser(Command, signals.Subject):
         try:
             names = self._parse(args)
             if names[0] is None:
-                raise ValueError('usage: edit [db] table')
+                raise ValueError('usage: edit db table')
         except ValueError as err:
             stat_bar.prompt(str(err), enums.Prompt.ERROR)
             return
-        # Open an existing buffer based on a regex pattern.
-        if len(names) == 1 and names[0].startswith('/'):
-            regex = names[0][1:-1]
-            pattern = re.compile(regex)
-            name_gen = buffer.name_generator()
-            for id, name in iter(name_gen):
-                if pattern.search(name) is not None:
-                    buffer.set_cur_from_name(name)
-                    return
-        # Open an existing buffer based on an id.
-        elif len(names) == 1 and names[0].isdigit():
-            buffer.set_cur_from_id(int(names[0]))
-            return
         # Open a new buffer with the given database and table.
-        elif names[1] != '*':
+        if names[1] != '*':
             db_name = names[0]
             table_names.append((names[1],))
         elif names[1] == '*':
@@ -379,6 +365,8 @@ class NewBrowser(Command, signals.Subject):
             new_db = shared.DBRegistry.create(db_name)
             new_db.connect()
             table_names = new_db.get_tables()
+        if len(table_names) == 1:
+            stat_bar.prompt(table_names[0][0], enums.Prompt.CONFIRM)
         for name in table_names:
             try:
                 table_name = name[0]
@@ -389,6 +377,8 @@ class NewBrowser(Command, signals.Subject):
             except ValueError as err:
                 stat_bar.prompt(str(err), enums.Prompt.ERROR)
                 return
+            if len(table_names) == 1:
+                stat_bar.prompt('loop:'+table_names[0][0], enums.Prompt.CONFIRM)
         buffer = browser.BrowserRegistry.get_buffer()
         buffer.set_cur_from_name(table_name)
 
@@ -396,38 +386,32 @@ class NewBrowser(Command, signals.Subject):
             """Return a combination of db name, table name, and id.
 
             Returns:
-                A list with one element if the argument given was an id.
-                A list with two elements if only one argument was given,
-                    which is presumed to be a table name.  The second
-                    element is None.
-                A list with three elements if two arguments were given.
-                    The first and second elements are the database and
-                    table name, respectively.  The third element is Null.
+                A list with three elements.  The first and second
+                elements are the database and table name, respectively.
+                The third element is None.
 
             Raises:
                 ValueError: if the arguments have invalid syntax.
             """
             names = []
-            try:
-                self._parse_helper(names, args, 0)
-            except ValueError as err:
-                print(str(err))
-                pass
+            self._parse_helper(names, args, 0)
+            if len(names) != 3:
+                raise ValueError('usage: edit db table')
             return names
 
     def _parse_helper(self, names, args, beg_idx):
+        """Split the string into two arguments.
+
+        The arguments are separated by a space.  An argument needs to
+        be enclosed in either double or single quotes if it contains
+        any spaces, otherwise, the quotes are not necessary.
+        """
         if args == '':
             names.append(None)
             return
         name_end = -1
         name = ''
-        if args.isdigit():
-            names.append(args)
-            return
-        elif args.startswith('/') and args.endswith('/'):
-            names.append(args)
-            return
-        elif args[0] in ('"', "'"):
+        if args[0] in ('"', "'"):
             if args[beg_idx] == '"':
                 name_end = args.find('"', beg_idx + 1)
             else:

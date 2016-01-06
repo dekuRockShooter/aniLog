@@ -99,7 +99,7 @@ class EditCell(Command, signals.Subject):
         cur_browser.on_entry_updated()
 
 
-# TODO: The table created by clone! requires a restart to display.
+# TODO: The table created requires a restart to display.
 class CloneTable(Command, signals.Subject):
     """Clone a table.
 
@@ -139,6 +139,7 @@ class CloneTable(Command, signals.Subject):
                 s += where_clause
             cur_db.execute(s)
         cur_db.commit()
+        cur_db = shared.DBRegistry.update_db(db_name)
         #self.emit(signals.Signal.ENTRY_INSERTED)
 
 
@@ -271,7 +272,32 @@ class PreviousBrowser(Command, signals.Subject):
         self.emit(signals.Signal.BROWSER_SWITCHED)
 
 
-# TODO: usage: open_table [db] table
+class RemoveTable(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
+    def execute(self):
+        stat_bar = status_bar.StatusBarRegistry.get()
+        buffer = browser.BrowserRegistry.get_buffer()
+        args = stat_bar.get_cmd_args()
+        try:
+            if not args:
+                buffer.remove_cur()
+            elif args.isdigit():
+                buffer.remove_from_id(int(args))
+            else:
+                buffer.remove_from_name(args)
+        except KeyError:
+            stat_bar.prompt('Browser not found.', enums.Prompt.CONFIRM)
+        except ValueError:
+            stat_bar.prompt('Cannot remove last table.', enums.Prompt.CONFIRM)
+
+
+# TODO: usage: edit [db] table.  At the moment, this opens a new table
+# as well as switches to an existing table.  A better implementation would
+# be to split these behaviors into two seperate commands.  Also, edit db *
+# breaks the command; no more tables can be added (switching works fine).
 class NewBrowser(Command, signals.Subject):
     def __init__(self, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)
@@ -285,8 +311,11 @@ class NewBrowser(Command, signals.Subject):
         names = []
         db_name = ''
         table_names = []
+        table_name = ''
         try:
             names = self._parse(args)
+            if names[0] is None:
+                raise ValueError('usage: edit [db] table')
         except ValueError as err:
             stat_bar.prompt(str(err), enums.Prompt.ERROR)
             return
@@ -312,16 +341,18 @@ class NewBrowser(Command, signals.Subject):
             new_db = shared.DBRegistry.create(db_name)
             new_db.connect()
             table_names = new_db.get_tables()
-        try:
-            for name in table_names:
+        for name in table_names:
+            try:
                 table_name = name[0]
                 brw = browser.BrowserRegistry.create(db_name, table_name)
-        except FileNotFoundError as err:
-            stat_bar.prompt(str(err), enums.Prompt.ERROR)
-            return
-        except ValueError as err:
-            stat_bar.prompt(str(err), enums.Prompt.ERROR)
-            return
+            except FileNotFoundError as err:
+                stat_bar.prompt(str(err), enums.Prompt.ERROR)
+                return
+            except ValueError as err:
+                stat_bar.prompt(str(err), enums.Prompt.ERROR)
+                return
+        buffer = browser.BrowserRegistry.get_buffer()
+        buffer.set_cur_from_name(table_name)
 
     def _parse(self, args):
             """Return a combination of db name, table name, and id.

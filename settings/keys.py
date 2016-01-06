@@ -23,7 +23,8 @@ class CommandMap:
             'select': commands.Select('', ''),
             'ls': commands.ShowBuffers('', ''),
             'clone': clone_cmd,
-            'clone!': clone_cmd
+            'clone!': clone_cmd,
+            'bd': commands.RemoveTable('', ''),
             }
         return CommandMap.cmd_map
 

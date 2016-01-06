@@ -527,18 +527,52 @@ class BrowserBuffer(signals.Observer):
         return (item for item in self._name_map.items())
 
     def add(self, name, browser):
+        assert(isinstance(browser, Browser))
         self._name_map[self._id] = name
         self._browser_map[name] = browser
         self._id = self._id + 1
 
-    def remove(self, id=None, name=None):
-        if id is not None:
-            name = self._name_map.pop(id)
-            self._browser_map.pop(name)
-        elif name is not None:
-            id = (v for v in self._name_map.values() if v == name)
-            self._name_map.pop(next(id))
-            self._browser_map.pop(name)
+    def remove_from_name(self, name):
+        """Remove a browser with the given name.
+
+        Raises:
+            KeyError: if no browser has the given name.
+            ValueError: if there is only one browser.
+        """
+        id = (v for v in self._name_map.values() if v == name)
+        self._name_map.pop(next(id))
+        self._remove_helper(name)
+
+    def remove_from_id(self, id):
+        """Remove a browser with the given id.
+
+        Raises:
+            KeyError: if no browser has the given id.
+            ValueError: if there is only one browser.
+        """
+        assert(type(id) is int)
+        name = self._name_map.pop(id)
+        self._remove_helper(name)
+
+    def remove_cur(self):
+        """Remove the current browser.
+
+        Raises:
+            ValueError: if there is only one browser.
+        """
+        name = self._cur.get_name()
+        self.remove_from_name(name)
+
+    def _remove_helper(self, name):
+        removed_browser = self._browser_map.pop(name)
+        if (removed_browser is self._cur) and (removed_browser is self._prev):
+            name = next(self.name_generator())[1]
+            self._cur = self._prev = self._browser_map[name]
+        elif removed_browser is self._prev:
+            self._prev = self._cur
+        elif removed_browser is self._cur:
+            self._cur = self._prev
+        self._cur.redraw()
 
     def get(self, id=None, name=None):
         if id is not None:
@@ -573,16 +607,18 @@ class BrowserBuffer(signals.Observer):
             self._END_ROW = len(self._name_map)
             self._pad.resize(self._END_ROW * 2, curses.COLS)
         row_count = 0
+        self._pad.clear()
         for id, name in self._name_map.items():
             self._pad.addstr(row_count, 0, str(id).ljust(4))
             if self._browser_map[name] is self._cur:
                 self._pad.addstr(row_count, 6, '%')
-            elif self._browser_map[name] is self._prev:
-                self._pad.addstr(row_count, 6, '#')
-            else:
-                self._pad.addstr(row_count, 6, ' ')
+            if self._browser_map[name] is self._prev:
+                self._pad.addstr(row_count, 7, '#')
             self._pad.addstr(row_count, 8, name)
+            self._pad.clrtoeol()
             row_count = row_count + 1
+        self._pad.move(row_count, 0)
+        self._pad.clrtobot()
 
     def redraw(self):
         self._update()

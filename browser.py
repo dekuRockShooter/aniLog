@@ -621,9 +621,30 @@ class BrowserBuffer(signals.Observer):
     def redraw(self):
         self._update()
         top_row = curses.LINES - len(self._name_map) - 2
+        overflow = False
         if top_row < 0:
             top_row = int(curses.LINES / 2) - 1
+            overflow = True
         self._pad.refresh(0, 0, top_row, 0, curses.LINES - 1, curses.COLS - 1)
+        # TODO: This is an extremely poor implementation.  Make a proper
+        # handler and have the buffer listen to signals.  Do something similar
+        # to how UI handles keys.
+        if overflow:
+            pad_top_row = 0
+            v_range = (curses.LINES) - top_row
+            key = 0
+            while key != ord('q'):
+                key = self._pad.getch()
+                if key == ord('j'):
+                    pad_top_row = pad_top_row + 1
+                    if pad_top_row + v_range > len(self._name_map):
+                        pad_top_row = len(self._name_map) - v_range
+                elif key == ord('k'):
+                    pad_top_row = pad_top_row - 1
+                    if pad_top_row < 0:
+                        pad_top_row = 0
+                self._pad.refresh(pad_top_row, 0, top_row, 0,
+                        curses.LINES - 1, curses.COLS - 1)
 
     def receive_signal(self, signal, args=None):
         if signal is signals.Signal.SHOW_BUFFERS:

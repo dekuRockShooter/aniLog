@@ -617,8 +617,6 @@ class BrowserBuffer(signals.Observer):
             self._pad.addstr(row_count, 8, name)
             self._pad.clrtoeol()
             row_count = row_count + 1
-        self._pad.move(row_count, 0)
-        self._pad.clrtobot()
 
     def redraw(self):
         self._update()

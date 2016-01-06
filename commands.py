@@ -284,14 +284,29 @@ class RemoveTable(Command, signals.Subject):
         try:
             if not args:
                 buffer.remove_cur()
+                return
             elif args.isdigit():
                 buffer.remove_from_id(int(args))
-            else:
-                buffer.remove_from_name(args)
+                return
         except KeyError:
-            stat_bar.prompt('Browser not found.', enums.Prompt.CONFIRM)
+            pass
         except ValueError:
-            stat_bar.prompt('Cannot remove last table.', enums.Prompt.CONFIRM)
+            pass
+        # TODO: put this in its own function to prevent code duplication.
+        # Also, for some reason, buffer.remove_from_name(name) does not
+        # work.  Instead, it raises a KeyError.
+        try:
+            pattern = re.compile(args)
+            name_gen = buffer.name_generator()
+            for id, name in iter(name_gen):
+                if pattern.search(name) is not None:
+                    buffer.remove_from_id(id)
+                    return
+        except KeyError:
+            stat_bar.prompt('No matching table found.', enums.Prompt.ERROR)
+        # TODO: Use/make a more appropriate error.
+        except ValueError:
+            stat_bar.prompt('Cannot remove last table.', enums.Prompt.ERROR)
 
 
 class SwitchTable(Command, signals.Subject):

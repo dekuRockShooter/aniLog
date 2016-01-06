@@ -566,6 +566,14 @@ class BrowserBuffer(signals.Observer):
         name = self._cur.get_name()
         self.remove_from_name(name)
 
+    def clear(self):
+        self._name_map.clear()
+        self._browser_map.clear()
+        self._cur = None
+        self._prev = None
+        self._id = 0
+        self._END_ROW = 2
+
     def _remove_helper(self, name):
         removed_browser = self._browser_map.pop(name)
         if (removed_browser is self._cur) and (removed_browser is self._prev):
@@ -575,6 +583,7 @@ class BrowserBuffer(signals.Observer):
             self._prev = self._cur
         elif removed_browser is self._cur:
             self._cur = self._prev
+        removed_browser.destroy()
         self._cur.redraw()
 
     def get(self, id=None, name=None):

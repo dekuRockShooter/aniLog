@@ -27,6 +27,7 @@ class CommandMap:
             'bd': commands.RemoveTable('', ''),
             'b': commands.SwitchTable('', ''),
             'mksession': commands.SaveSession('', ''),
+            'ldsession': commands.LoadSession('', ''),
             }
         return CommandMap.cmd_map
 

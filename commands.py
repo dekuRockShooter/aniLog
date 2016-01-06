@@ -679,3 +679,27 @@ class SaveSession(Command, signals.Subject):
             session.write('\n')
         session.close()
         #self.emit(signals.Signal.SHOW_BUFFERS)
+
+
+class LoadSession(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
+    def execute(self):
+        buffer = browser.BrowserRegistry.get_buffer()
+        stat_bar = status_bar.StatusBarRegistry.get()
+        args = stat_bar.get_cmd_args()
+        table_name = ''
+        db_name = ''
+        if not args:
+            stat_bar.prompt('usage: ldsession session_name',
+                    enums.Prompt.ERROR)
+            return
+        session = open(args, 'r')
+        browser.BrowserRegistry.destroy_all()
+        if buffer is not None:
+            buffer.clear()
+        for line in session:
+            browser.BrowserRegistry.create(*(json.loads(line)))
+        session.close()

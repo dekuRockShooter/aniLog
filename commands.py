@@ -86,7 +86,12 @@ class EditCell(Command, signals.Subject):
         prim_key = args[: sep_idx]
         cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
-        cur_db = shared.DBRegistry.get_db(db_name)
+        try:
+            cur_db = shared.DBRegistry.get_db(db_name)
+        except KeyError:
+            stat_bar.prompt('No connection to the database.',
+                              enums.Prompt.ERROR)
+            return
         s = 'update "{table}" set "{col_name}"="{value}"\
                 where "{primary_key}"="{id}"'.format(
                 table=cur_browser.get_table_name(),
@@ -119,7 +124,12 @@ class CloneTable(Command, signals.Subject):
         cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = shared.DBRegistry.get_db(db_name)
+        try:
+            cur_db = shared.DBRegistry.get_db(db_name)
+        except KeyError:
+            stat_bar.prompt('No connection to the database.',
+                              enums.Prompt.ERROR)
+            return
         clone_table_name = stat_bar.get_cmd_args()
         if not clone_table_name:
             return
@@ -150,10 +160,16 @@ class NewEntry(Command, signals.Subject):
 
     def execute(self):
         #cur_browser = browser.BrowserRegistry.get_cur()
+        stat_bar = status_bar.StatusBarRegistry.get()
         cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = shared.DBRegistry.get_db(db_name)
+        try:
+            cur_db = shared.DBRegistry.get_db(db_name)
+        except KeyError:
+            stat_bar.prompt('No connection to the database.',
+                              enums.Prompt.ERROR)
+            return
         s = 'insert into "{table}" default values'.format(table=table_name)
         cur_db.execute(s)
         cur_db.commit()
@@ -181,7 +197,12 @@ class DeleteEntry(Command, signals.Subject):
         cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = shared.DBRegistry.get_db(db_name)
+        try:
+            cur_db = shared.DBRegistry.get_db(db_name)
+        except KeyError:
+            stat_bar.prompt('No connection to the database.',
+                              enums.Prompt.ERROR)
+            return
         rowids = shared.SelectBuffer.get()
         if not rowids:
             rowids = [args]
@@ -198,11 +219,17 @@ class DeleteEntry(Command, signals.Subject):
 
 class CopyEntry(Command):
     def execute(self):
+        stat_bar = status_bar.StatusBarRegistry.get()
         cur_browser = browser.BrowserRegistry.get_buffer().get()
         #cur_browser = browser.BrowserRegistry.get_cur()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = shared.DBRegistry.get_db(db_name)
+        try:
+            cur_db = shared.DBRegistry.get_db(db_name)
+        except KeyError:
+            stat_bar.prompt('No connection to the database.',
+                              enums.Prompt.ERROR)
+            return
         rowids = shared.SelectBuffer.get()
         entries = []
         if not rowids:
@@ -212,7 +239,10 @@ class CopyEntry(Command):
                     table=table_name,
                     prim_key=cur_browser.PRIMARY_KEY,
                     val=id)
-            row = list(cur_db.execute(s)[0])
+            row_tuple = cur_db.execute(s)
+            if not row_tuple:
+                continue
+            row = list(row_tuple[0])
             row[0] = 'null' # for autoincrementing the rowid
             for idx, val in enumerate(row[1:], 1):
                 if val is None:
@@ -230,10 +260,16 @@ class CopyEntry(Command):
 class PasteEntry(Command):
     def execute(self):
         #cur_browser = browser.BrowserRegistry.get_cur()
+        stat_bar = status_bar.StatusBarRegistry.get()
         cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = shared.DBRegistry.get_db(db_name)
+        try:
+            cur_db = shared.DBRegistry.get_db(db_name)
+        except KeyError:
+            stat_bar.prompt('No connection to the database.',
+                              enums.Prompt.ERROR)
+            return
         rows = shared.CopyBuffer.get(shared.CopyBuffer.DEFAULT_KEY)
         for row in rows:
             values = ','.join(row)
@@ -459,7 +495,12 @@ class Filter(Command, signals.Subject):
         col_name = cur_browser.get_col_name()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = shared.DBRegistry.get_db(db_name)
+        try:
+            cur_db = shared.DBRegistry.get_db(db_name)
+        except KeyError:
+            stat_bar.prompt('No connection to the database.',
+                              enums.Prompt.ERROR)
+            return
         s = 'select * from "{table}" where "{col_name}" like \'%{val}%\''.\
                 format(table=table_name,
                        col_name=col_name,
@@ -483,10 +524,16 @@ class Sort(Command, signals.Subject):
     # much easier to follow.
     def execute(self):
         #cur_browser = browser.BrowserRegistry.get_cur()
+        stat_bar = status_bar.StatusBarRegistry.get()
         cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
-        cur_db = shared.DBRegistry.get_db(db_name)
+        try:
+            cur_db = shared.DBRegistry.get_db(db_name)
+        except KeyError:
+            stat_bar.prompt('No connection to the database.',
+                              enums.Prompt.ERROR)
+            return
         col_name = ''
         direction = self._direction
         if self._direction is None:
@@ -611,6 +658,11 @@ class Select(Command, signals.Subject):
         stat_bar = status_bar.StatusBarRegistry.get()
         args = stat_bar.get_cmd_args()
         rowids = self._parse_args(args)
+        # TODO: This doesn't do anything.  For the intended effect, check
+        # if the current table's database is connected to.
+        if not rowids:
+            stat_bar.prompt('Nothing to select.', enums.Prompt.ERROR)
+            return
         shared.SelectBuffer.set(rowids)
         self.emit(signals.Signal.ENTRIES_SELECTED)
 

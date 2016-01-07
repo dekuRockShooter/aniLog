@@ -384,8 +384,6 @@ class NewBrowser(Command, signals.Subject):
             new_db = shared.DBRegistry.create(db_name)
             new_db.connect()
             table_names = new_db.get_tables()
-        if len(table_names) == 1:
-            stat_bar.prompt(table_names[0][0], enums.Prompt.CONFIRM)
         for name in table_names:
             try:
                 table_name = name[0]
@@ -396,8 +394,6 @@ class NewBrowser(Command, signals.Subject):
             except ValueError as err:
                 stat_bar.prompt(str(err), enums.Prompt.ERROR)
                 return
-            if len(table_names) == 1:
-                stat_bar.prompt('loop:'+table_names[0][0], enums.Prompt.CONFIRM)
         buffer = browser.BrowserRegistry.get_buffer()
         buffer.set_cur_from_name(table_name)
 

@@ -324,6 +324,8 @@ class Browser(signals.Observer):
         self._row_ids.pop(self._cur_row)
         self._pad.deleteln()
         self._row_count = self._row_count - 1
+        if self._cur_row >= self._row_count:
+            self._cur_row = self._row_count - 1
         self.redraw()
 
     def on_screen_resize(self):
@@ -592,6 +594,8 @@ class BrowserBuffer(signals.Observer):
             KeyError: if no browser has the given name.
             ValueError: if there is only one browser.
         """
+        if not self._name_map:
+            return
         id = next((k for k, v in self._name_map.items() if v == name))
         self.remove_from_id(id)
 
@@ -748,8 +752,8 @@ class BrowserRegistry:
 
     @staticmethod
     def get_buffer():
-        #if BrowserRegistry._browser_buffer is None:
-            #raise ValueError('Buffer is empty.')
+        if BrowserRegistry._browser_buffer is None:
+            BrowserRegistry._browser_buffer = BrowserBuffer()
         return BrowserRegistry._browser_buffer
 
     @staticmethod

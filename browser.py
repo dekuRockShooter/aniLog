@@ -639,13 +639,13 @@ class BrowserBuffer(signals.Observer):
         if top_row < 0:
             top_row = int(curses.LINES / 2) - 1
             overflow = True
-        self._pad.refresh(0, 0, top_row, 0, curses.LINES - 1, curses.COLS - 1)
+        self._pad.refresh(0, 0, top_row, 0, curses.LINES - 2, curses.COLS - 1)
         # TODO: This is an extremely poor implementation.  Make a proper
         # handler and have the buffer listen to signals.  Do something similar
         # to how UI handles keys.
         if overflow:
             pad_top_row = 0
-            v_range = (curses.LINES) - top_row
+            v_range = (curses.LINES - 1) - top_row
             key = 0
             while key != ord('q'):
                 key = self._pad.getch()
@@ -658,7 +658,7 @@ class BrowserBuffer(signals.Observer):
                     if pad_top_row < 0:
                         pad_top_row = 0
                 self._pad.refresh(pad_top_row, 0, top_row, 0,
-                        curses.LINES - 1, curses.COLS - 1)
+                        curses.LINES - 2, curses.COLS - 1)
 
     def receive_signal(self, signal, args=None):
         if signal is signals.Signal.SHOW_BUFFERS:

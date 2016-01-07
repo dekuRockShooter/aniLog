@@ -226,6 +226,8 @@ class Browser(signals.Observer):
             # starting at the _row_count'th row.
             for coord, col_val in zip(self._col_coords, row):
                 col_width = coord.end - coord.beg + 1
+                if col_val is None:
+                    col_val = ''
                 self._pad.addnstr(self._row_count, coord.beg, str(col_val),\
                         col_width)
             self._row_count = self._row_count + 1

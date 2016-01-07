@@ -215,7 +215,10 @@ class CopyEntry(Command):
             row = list(cur_db.execute(s)[0])
             row[0] = 'null' # for autoincrementing the rowid
             for idx, val in enumerate(row[1:], 1):
-                val = str(val)
+                if val is None:
+                    val = ''
+                else:
+                    val = str(val)
                 # Make entries that have spaces work properly when pasting.
                 if val.startswith('"') and val.endswith('"'):
                     continue

@@ -294,7 +294,8 @@ class RemoveTable(Command, signals.Subject):
         except KeyError:
             pass
         except ValueError:
-            pass
+            stat_bar.prompt('Cannot remove last table.', enums.Prompt.ERROR)
+            return
         # TODO: put this in its own function to prevent code duplication.
         # Also, for some reason, buffer.remove_from_name(name) does not
         # work.  Instead, it raises a KeyError.
@@ -701,6 +702,7 @@ class LoadSession(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
+        all_tables_loaded = True
         buffer = browser.BrowserRegistry.get_buffer()
         stat_bar = status_bar.StatusBarRegistry.get()
         args = stat_bar.get_cmd_args()
@@ -715,5 +717,14 @@ class LoadSession(Command, signals.Subject):
         if buffer is not None:
             buffer.clear()
         for line in session:
-            browser.BrowserRegistry.create(*(json.loads(line)))
+            try:
+                browser.BrowserRegistry.create(*(json.loads(line)))
+            except ValueError:
+                all_tables_loaded = False
+            except FileNotFoundError as err:
+                stat_bar.prompt(str(err), enums.Prompt.ERROR)
+                break
+        if not all_tables_loaded:
+            stat_bar.prompt('Some tables could not be loaded.',
+                            enums.Prompt.ERROR)
         session.close()

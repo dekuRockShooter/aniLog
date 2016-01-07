@@ -293,7 +293,7 @@ class Browser(signals.Observer):
         """
         row = [self._db.get_newest(self._table)]
         self._populate_browser(row)
-        self.redraw()
+        self.scroll(enums.Scroll.END)
 
     def on_entry_updated(self):
         """Redraw the current cell's value.

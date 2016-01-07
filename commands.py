@@ -158,7 +158,7 @@ class NewEntry(Command, signals.Subject):
         cur_db.execute(s)
         cur_db.commit()
         self.emit(signals.Signal.ENTRY_INSERTED)
-        cur_browser.redraw()
+        #cur_browser.redraw()
 
 
 class DeleteEntry(Command, signals.Subject):

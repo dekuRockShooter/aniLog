@@ -7,11 +7,13 @@ import settings.positions as positions
 import settings.keys
 import signals
 
+
 class Coordinates:
     def __init__(self, beg=0, end=0, sep=0):
         self.beg = beg
         self.end = end
         self.sep = sep
+
 
 class Browser(signals.Observer):
     """A widget that allows interaction with a database table.
@@ -89,7 +91,7 @@ class Browser(signals.Observer):
             self._db.connect()
         except FileNotFoundError:
             shared.DBRegistry.destroy(db_name)
-            raise
+            raise FileNotFoundError('{db} not found.'.format(db=db_name))
         if (table,) not in self._db.get_tables():
             raise ValueError('{db} has no table {table}.'.format(
                 db=db_name, table=table))
@@ -510,6 +512,52 @@ class Browser(signals.Observer):
         self._select_buffer = select_buffer
 
 
+class NullBrowser(Browser):
+    def __init__(self, db_name, table):
+        try:
+            super(NullBrowser, self).__init__(db_name, table)
+        except ValueError:
+            pass
+        except FileNotFoundError:
+            pass
+
+    def create(self, rows=None):
+        pass
+    def destroy(self):
+        pass
+    def redraw(self):
+        pass
+    def on_new_query(self, rows):
+        pass
+    def on_entry_inserted(self):
+        pass
+    def on_entry_updated(self):
+        pass
+    def on_entry_deleted(self):
+        pass
+    def on_screen_resize(self):
+        pass
+    def get_cur_cell(self):
+        pass
+    def get_name(self):
+        pass
+    def get_table_name(self):
+        pass
+    def get_db_name(self):
+        pass
+    def get_prim_key(self):
+        pass
+    def get_col_name(self):
+        pass
+    def receive_signal(self, signal, args=None):
+        pass
+    def scroll(self, direction, quantifier=1):
+        pass
+
+
+null_browser = NullBrowser('', '')
+
+
 class BrowserBuffer(signals.Observer):
     # _name_map (int -> str): a map from browser id's to browser names.
     # _browser_map (str -> browser): a map from browser names to browsers.
@@ -520,8 +568,8 @@ class BrowserBuffer(signals.Observer):
         self._END_ROW = 2
         self._pad = curses.newpad(self._END_ROW, curses.COLS)
         self._id = 0
-        self._cur = None
-        self._prev = None
+        self._cur = null_browser
+        self._prev = null_browser
         cmd_map = settings.keys.CommandMap.get()
         cmd_map['ls'].register(self)
 
@@ -544,9 +592,8 @@ class BrowserBuffer(signals.Observer):
             KeyError: if no browser has the given name.
             ValueError: if there is only one browser.
         """
-        id = (v for v in self._name_map.values() if v == name)
-        self._name_map.pop(next(id))
-        self._remove_helper(name)
+        id = next((k for k, v in self._name_map.items() if v == name))
+        self.remove_from_id(id)
 
     def remove_from_id(self, id):
         """Remove a browser with the given id.
@@ -556,8 +603,10 @@ class BrowserBuffer(signals.Observer):
             ValueError: if there is only one browser.
         """
         assert(type(id) is int)
+        self._remove_startup()
         name = self._name_map.pop(id)
-        self._remove_helper(name)
+        removed_browser = self._browser_map.pop(name)
+        self._remove_cleanup(removed_browser)
 
     def remove_cur(self):
         """Remove the current browser.
@@ -571,13 +620,16 @@ class BrowserBuffer(signals.Observer):
     def clear(self):
         self._name_map.clear()
         self._browser_map.clear()
-        self._cur = None
-        self._prev = None
+        self._cur = null_browser
+        self._prev = null_browser
         self._id = 0
         self._END_ROW = 2
 
-    def _remove_helper(self, name):
-        removed_browser = self._browser_map.pop(name)
+    def _remove_startup(self):
+        if len(self._name_map) == 1:
+            raise ValueError
+
+    def _remove_cleanup(self, removed_browser):
         if (removed_browser is self._cur) and (removed_browser is self._prev):
             name = next(self.name_generator())[1]
             self._cur = self._prev = self._browser_map[name]
@@ -612,7 +664,10 @@ class BrowserBuffer(signals.Observer):
         Raises:
             KeyError: If no browser has the given name.
         """
-        self._prev = self._cur
+        if self._prev is null_browser:
+            self._prev = self._browser_map[name]
+        else:
+            self._prev = self._cur
         self._cur = self._browser_map[name]
         self._cur.redraw()
 

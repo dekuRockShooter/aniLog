@@ -234,15 +234,13 @@ class CopyEntry(Command):
         entries = []
         if not rowids:
             rowids = [str(cur_browser.get_prim_key())]
-        for id in rowids:
-            s = 'select * from "{table}" where "{prim_key}"="{val}"'.format(
-                    table=table_name,
-                    prim_key=cur_browser.PRIMARY_KEY,
-                    val=id)
-            row_tuple = cur_db.execute(s)
-            if not row_tuple:
-                continue
-            row = list(row_tuple[0])
+        s = 'select * from "{table}" where rowid in ({selected_ids})'.format(
+                table=table_name,
+                selected_ids=','.join(rowids))
+        rows = cur_db.execute(s)
+        for row_tuple in rows:
+            # Convert to a list to be able to format entries.
+            row = list(row_tuple)
             row[0] = 'null' # for autoincrementing the rowid
             for idx, val in enumerate(row[1:], 1):
                 if val is None:
@@ -252,7 +250,7 @@ class CopyEntry(Command):
                 # Make entries that have spaces work properly when pasting.
                 if val.startswith('"') and val.endswith('"'):
                     continue
-                row[idx] = '{}{}{}'.format('"', val, '"')
+                row[idx] = '"{}"'.format(val)
             entries.append(tuple(row))
         shared.CopyBuffer.set(shared.CopyBuffer.DEFAULT_KEY, entries)
 

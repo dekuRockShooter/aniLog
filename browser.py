@@ -653,6 +653,11 @@ class BrowserBuffer(signals.Observer):
         else:
             return self._cur
 
+    def set_cur_to_prev(self):
+        if self._cur is self._prev:
+            return
+        self.set_cur_from_name(self._prev.get_name())
+
     def set_cur_from_id(self, id):
         """Set the current browser to the one with the given id.
 

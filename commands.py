@@ -365,6 +365,9 @@ class SwitchTable(Command, signals.Subject):
         buffer = browser.BrowserRegistry.get_buffer()
         stat_bar = status_bar.StatusBarRegistry.get()
         args = stat_bar.get_cmd_args()
+        if self._switch_to_prev(stat_bar, args):
+            buffer.set_cur_to_prev()
+            return
         if not args:
             stat_bar.prompt('usage: b id/regex', enums.Prompt.ERROR)
             return
@@ -383,6 +386,14 @@ class SwitchTable(Command, signals.Subject):
                     return
         except KeyError:
             stat_bar.prompt('No matching table found.', enums.Prompt.ERROR)
+
+    def _switch_to_prev(self, stat_bar, args):
+        if not args and stat_bar.get_cmd_name().endswith('#'):
+            return True
+        elif (len(args) == 1) and (args[0] == '#'):
+            return True
+        else:
+            return False
 
 
 # TODO: usage: edit db table.  At the moment, this opens a new table

@@ -26,6 +26,7 @@ class CommandMap:
             'clone!': clone_cmd,
             'bd': commands.RemoveTable('', ''),
             'b': commands.SwitchTable('', ''),
+            'b#': commands.SwitchTable('', ''),
             'mksession': commands.SaveSession('', ''),
             'ldsession': commands.LoadSession('', ''),
             }

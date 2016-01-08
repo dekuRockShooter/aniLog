@@ -762,7 +762,11 @@ class LoadSession(Command, signals.Subject):
             stat_bar.prompt('usage: ldsession session_name',
                     enums.Prompt.ERROR)
             return
-        session = open(args, 'r')
+        try:
+            session = open(args, 'r')
+        except FileNotFoundError as err:
+            stat_bar.prompt(str(err), enums.Prompt.ERROR)
+            return
         browser.BrowserRegistry.destroy_all()
         if buffer is not None:
             buffer.clear()

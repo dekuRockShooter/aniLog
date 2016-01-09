@@ -39,7 +39,6 @@ class Coordinates:
 # get_table_by_id and get_table_by_name and get_cur_table, destroy to
 # destroy_cur and destroy_by_name and destroy_by_id.
 
-# Rename get_prim_key to get_cur_row_pks after removing calls that use it.
 # Rename get_col_name to get_cur_col_name after removing calls that use it.
 # Rename scroll to _on_scroll after removing calls that use it and creating
 #   a scroll signal.
@@ -425,7 +424,7 @@ class Browser(signals.Observer):
         """Return the name of the database used by this Table."""
         return self._db_name
 
-    def get_prim_key(self):
+    def get_cur_row_pks(self):
         """Return the primary key values of the current row.
 
         Returns:
@@ -615,7 +614,7 @@ class NullBrowser(Browser):
         return ''
     def get_db_name(self):
         return ''
-    def get_prim_key(self):
+    def get_cur_row_pks(self):
         return []
     def get_col_name(self):
         return ''

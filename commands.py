@@ -241,7 +241,7 @@ class Copy(Command):
         rowids = shared.SelectBuffer.get()
         entries = []
         if not rowids:
-            rowids = [str(cur_browser.get_prim_key())]
+            rowids = [str(cur_browser.get_cur_row_pks())]
         s = 'select * from "{table}" where rowid in ({selected_ids})'.format(
                 table=table_name,
                 selected_ids=','.join(rowids))
@@ -628,7 +628,7 @@ class Write(Command):
         for letter in cmd_str:
             if possible_macro:
                 if letter == 'p':
-                    letter = str(cur_browser.get_prim_key())
+                    letter = str(cur_browser.get_cur_row_pks())
                 elif letter == 'c':
                     letter = cur_browser.get_col_name()
                 elif letter == 'v':

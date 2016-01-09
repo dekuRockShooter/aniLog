@@ -29,9 +29,9 @@ class Coordinates:
         self.sep = sep
 
 
-# TODO: Rename _END_ROW to _row_capacity, _END_COL to _col_capacity,
-# _row_ids to _primary_keys, _db to _DB, _db_name to _DB_NAME, _table_name
-# to _TABLE_NAME, _col_names to _COL_NAMES, _bot_row to _last_vis_row, _top_row
+# TODO: 
+# _row_ids to _primary_keys,
+#  _col_names to _COL_NAMES, _bot_row to _last_vis_row, _top_row
 # to _first_vis_row, _left_col to _first_vis_col, _right_col to _last_vis_col,
 # on_new_query to _on_new_query, on_entry_deleted to _on_entry_deleted,
 # on_screen_resize to _on_screen_resize, browser_generator to table_generator,
@@ -125,22 +125,22 @@ class Browser(signals.Observer):
         # This will raise an AssertionError if len(col_widths) != len(cols)
         col_widths = positions.COL_WIDTHS
         try:
-            self._db = shared.DBRegistry.get_db(db_name)
+            self._DB = shared.DBRegistry.get_db(db_name)
         except KeyError:
-            self._db = shared.DBRegistry.create(db_name)
+            self._DB = shared.DBRegistry.create(db_name)
         try:
-            self._db.connect()
+            self._DB.connect()
         except FileNotFoundError:
             shared.DBRegistry.destroy(db_name)
             raise FileNotFoundError('{db} not found.'.format(db=db_name))
-        if (table,) not in self._db.get_tables():
+        if (table,) not in self._DB.get_tables():
             raise ValueError('{db} has no table {table}.'.format(
                 db=db_name, table=table))
         self.PRIMARY_KEY = 'rowid'
-        self._col_names = self._db.get_col_names(table)
+        self._COL_NAMES = self._DB.get_col_names(table)
         self._row_ids = []
-        self._db_name = db_name
-        self._table = table
+        self._DB_NAME = db_name
+        self._TABLE_NAME = table
         self._VIS_RNG = [positions.BROWSER_BOTTOM_RIGHT_COORDS[0] -
                              positions.BROWSER_UPPER_LEFT_COORDS[0],
                          positions.BROWSER_BOTTOM_RIGHT_COORDS[1] -
@@ -153,7 +153,7 @@ class Browser(signals.Observer):
         self._bot_row = 0 # The last row in the pad that is visible.
         self._top_row = self._VIS_RNG[0] # TODO: this should be bot_row
 
-        self._END_COL = int(sum(col_widths) + 2*len(col_widths))
+        self._col_capacity = int(sum(col_widths) + 2*len(col_widths))
         self._BEG_COL = 0
         self._left_col = 0
         self._right_col = self._VIS_RNG[1]
@@ -194,7 +194,7 @@ class Browser(signals.Observer):
             AssertionError: if the size of col_width is not equal to
                 the number of table columns.
         """
-        assert(len(col_widths) == len(self._col_names))
+        assert(len(col_widths) == len(self._COL_NAMES))
         self._col_coords.clear()
         self._col_coords.append(Coordinates(0, col_widths[0]-1, col_widths[0]))
 
@@ -225,7 +225,7 @@ class Browser(signals.Observer):
                 the database table.
         """
         if not rows:
-            rows = self._db.select_all_from(self._table)
+            rows = self._DB.select_all_from(self._TABLE_NAME)
         # Clear and reset everything to an empty state.
         self._setup_curses()
         self._pad.clear()
@@ -241,8 +241,8 @@ class Browser(signals.Observer):
             return
         curses.initscr()
         self._row_capacity = positions.BROWSER_BOTTOM_RIGHT_COORDS[0] * 2
-        self._END_COL = positions.BROWSER_BOTTOM_RIGHT_COORDS[1] * 2
-        self._pad = curses.newpad(self._row_capacity, self._END_COL)
+        self._col_capacity = positions.BROWSER_BOTTOM_RIGHT_COORDS[1] * 2
+        self._pad = curses.newpad(self._row_capacity, self._col_capacity)
         self._pad.keypad(1)
         self._pad.leaveok(0)
 
@@ -302,7 +302,7 @@ class Browser(signals.Observer):
             cols: The new number of columns. This must be greater than
                 the current number of columns in order to resize the pad.
         """
-        if (rows <= self._row_capacity) and (cols <= self._END_COL):
+        if (rows <= self._row_capacity) and (cols <= self._col_capacity):
             return
         # Get the new number of rows.
         if rows is None:
@@ -311,10 +311,10 @@ class Browser(signals.Observer):
             self._row_capacity = rows
         # Get the new number of columns.
         if cols is None:
-            self._END_COL = 2 * self._END_COL
-        elif cols > self._END_COL:
-            self._END_COL =cols
-        self._pad.resize(self._row_capacity, self._END_COL)
+            self._col_capacity = 2 * self._col_capacity
+        elif cols > self._col_capacity:
+            self._col_capacity = cols
+        self._pad.resize(self._row_capacity, self._col_capacity)
 
     def on_new_query(self, rows):
         """Display the given rows.
@@ -338,7 +338,7 @@ class Browser(signals.Observer):
         This redraws the table with the rows that were inserted since the
         last redraw.
         """
-        row = [self._db.get_newest(self._table)]
+        row = [self._DB.get_newest(self._TABLE_NAME)]
         self._populate_browser(row)
         self.scroll(enums.Scroll.END)
 
@@ -400,11 +400,11 @@ class Browser(signals.Observer):
         table.
         """
         cmd = 'select "{col_name}" from "{table}" where "{prim_key}"="{key}"'.\
-                format(col_name=self._col_names[self._cur_col],
-                       table=self._table,
+                format(col_name=self._COL_NAMES[self._cur_col],
+                       table=self._TABLE_NAME,
                        prim_key=self.PRIMARY_KEY,
                        key=self._row_ids[self._cur_row])
-        return self._db.execute(cmd)[0][0]
+        return self._DB.execute(cmd)[0][0]
 
     def get_name(self):
         """Return the name of this Table.
@@ -413,15 +413,15 @@ class Browser(signals.Observer):
         the database it is connected to, and 'table' is the table that
         it displays.
         """
-        return '{}.{}'.format(self._db_name, self._table)
+        return '{}.{}'.format(self._DB_NAME, self._TABLE_NAME)
 
     def get_table_name(self):
         """Return the name of the database table used by this Table."""
-        return self._table
+        return self._TABLE_NAME
 
     def get_db_name(self):
         """Return the name of the database used by this Table."""
-        return self._db_name
+        return self._DB_NAME
 
     def get_cur_row_pks(self):
         """Return the primary key values of the current row.
@@ -433,7 +433,7 @@ class Browser(signals.Observer):
 
     def get_cur_col_name(self):
         """Return the column name of the current cell."""
-        return self._col_names[self._cur_col]
+        return self._COL_NAMES[self._cur_col]
 
     def receive_signal(self, signal, args=None):
         """Override singals.Observer."""
@@ -504,9 +504,9 @@ class Browser(signals.Observer):
         #elif direction == enums.Scroll.PAGE_LEFT:
             #return -self._VIS_RNG[0]
         elif direction == enums.Scroll.H_HOME:
-            return -len(self._col_names)
+            return -len(self._COL_NAMES)
         elif direction == enums.Scroll.H_END:
-            return len(self._col_names)
+            return len(self._COL_NAMES)
 
     def scroll(self, direction, quantifier=1):
         """Scroll in the given direction."""
@@ -540,8 +540,8 @@ class Browser(signals.Observer):
             self._cur_col = self._cur_col + self._cols_to_scroll(direction)
             if self._cur_col < 0:
                 self._cur_col = 0
-            elif self._cur_col >= len(self._col_names):
-                self._cur_col = len(self._col_names) - 1
+            elif self._cur_col >= len(self._COL_NAMES):
+                self._cur_col = len(self._COL_NAMES) - 1
             if self._col_coords[self._cur_col].sep > self._right_col:
                 self._right_col = self._col_coords[self._cur_col].sep
                 self._left_col = self._right_col - self._VIS_RNG[1]

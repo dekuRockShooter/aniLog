@@ -8,33 +8,31 @@ import settings.positions as positions
 import signals
 
 # TODO: no hard coding
+# This class is a mess.  Methods need to be rewritten/removed/implemented
+# by CommandLine.
+# Give edit, get_cmd_name, and get_cmd_args to CommandLine.
+# Split the bar into a StatusBar and a CommandLine.
+# Rename create to _reset, update to redraw.
 class StatusBar(signals.Observer):
-    """Display information or enter commands.
+    """Display information about the program's state.
 
-    The status bar shows information about the program's current state.
-    It is also used to write and send commands to the program.
-    
+    The status bar shows users information about anything that
+    happens in the program: errors, notifications, confirmations,
+    and other prompts and messages that provide useful information
+    to the user.  It is used to notify users about something that
+    they should know.
+
     Methods:
-        edit: Write a command for the user to edit.
-        prompt: Show a message.
+        edit: depracated.
+        prompt: Write a message to the status bar.
         create: Setup the status bar.
         update: Redraw the status bar.
         destroy: Close the status bar.
         get_cmd_name: Return the name of the last command entered.
         get_cmd_args: Return the arguements of the last command entered.
     """
+    # TODO: this should be __init__(self).
     def __init__(self, position, cmd_map):
-        """Constructor.
-
-        Define the placement of the status bar.  The status bar always
-        starts at column zero in the screen.
-
-        Args:
-            position: Where to place the status bar.  Valid values are
-                StatusBar.TOP and StatusBar.BOTTOM for the top and
-                bottom of the screen, respectively.
-            cmd_map: The map from command names to Command objects.
-        """
         curses.initscr()
         curses.noecho()
         self._scr_right_col = curses.COLS
@@ -52,6 +50,7 @@ class StatusBar(signals.Observer):
         cmd_map['resize'].register(self)
 
     def _reposition(self, scr_row, cols):
+        """Redraw the status bar after resizing the screen."""
         if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:
             return
         else:
@@ -65,8 +64,8 @@ class StatusBar(signals.Observer):
     # tries to do.  This string should be determined by the user and created
     # by something else.  Then that object should call the prompt method
     # to update the string.
-
     def create(self):
+        """Will be removed."""
         """Update the status bar string.
 
         This method updates the string to be displayed in the status bar.
@@ -80,10 +79,12 @@ class StatusBar(signals.Observer):
         self._cur_str = '{}:{}/{}'.format(name, idx, browser_count)
 
     def update(self):
-        """Update the status bar.
+        """Will be removed."""
+        """Redraw the status bar.
 
-        This method updates the status bar to show the current values
-        of each field.
+        This method redraws the status bar to show the updated default
+        message.  For an explanation about the default message, see the
+        prompt method.
         """
         self.create()
         self._clear(self._cur_str)
@@ -103,6 +104,7 @@ class StatusBar(signals.Observer):
         self._win.refresh()
 
     def edit(self, initial_str=''):
+        """Will be removed."""
         """Open the status bar for editing.
 
         The status bar takes keyboard focus until the user is done
@@ -144,17 +146,11 @@ class StatusBar(signals.Observer):
         Args:
             prompt_str: The message to display.
             mode: Specifies what actions the status bar should take.
-
-        Modes:
-            enums.Prompt.CONFIRM: The prompt is meant to ask for
-                confirmation.  The user must enter a 'y' or 'n',
-                and the reply is returned.
-            enums.Prompt.ERROR: The prompt is meant to notify the user
-                that an error has occured.
+                This can be one of the enumerations in enums.Prompt.
 
         Returns:
-            'y'/'n': If the mode is enums.Prompt.CONFIRM
-            An empty string: If the mode is enums.Prompt.ERROR
+            'y'/'n': If the mode is enums.Prompt.CONFIRM.
+            An empty string: If the mode is enums.Prompt.ERROR.
         """
         ret_str = ''
         if mode == enums.Prompt.CONFIRM:
@@ -168,10 +164,12 @@ class StatusBar(signals.Observer):
         return ret_str
 
     def get_cmd_name(self):
+        """Will be removed."""
         """Return the name of the last command entered."""
         return self._last_cmd_name
 
     def get_cmd_args(self):
+        """Will be removed."""
         """Return the arguments of the last command entered."""
         return self._last_cmd_args
 
@@ -225,8 +223,8 @@ class StatusBarRegistry:
     def create(position, cmd_map):
         """Create the status bar.
 
-        The status bar is created if it has not been already.  The
-        status bar is returned.
+        Returns:
+            The status bar.
         """
         if not StatusBarRegistry._status_bar:
             StatusBarRegistry._status_bar = StatusBar(position, cmd_map)
@@ -234,13 +232,10 @@ class StatusBarRegistry:
 
     @staticmethod
     def destroy():
-        """Destroy (close) the status bar."""
+        """Close the status bar."""
         StatusBarRegistry._status_bar.destroy()
 
     @staticmethod
     def destroy_all():
+        """Same as destroy."""
         StatusBarRegistry.destroy()
-
-
-if __name__ == '__main__':
-    print('Not a script.')

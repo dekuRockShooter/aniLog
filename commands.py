@@ -5,16 +5,25 @@
     Classes:
         Command: The interface for all commands.
         Scroll: Scroll the browser.
-        EditCell: edit the current cell's value.
-        NewEntry: Add a new entry to the browser.
-        DeleteEntry: Delete the current entry.
-        CopyEntry: copy the current entry.
-        PasteEntry: paste a copied entry into the current browser.
-        NextBrowser: switch to the next browser.
-        PreviousBrowser: switch to the previous browser.
+        Update: edit the current cell's value.
+        Insert: Add a new entry to the browser.
+        Delete: Delete the current entry.
+        Copy: copy the current entry.
+        Paste: paste a copied entry into the current browser.
+        NextTable: switch to the next browser.
+        PreviousTable: switch to the previous browser.
+        Clone: Copy a table's schema.
+        RemoveTable: Remove a Table from the buffer.
+        SwitchTable: Switch Tables.
+        Edit: Edit a Table.
         Filter: Show entries that match a search term.
         Sort: Sort the entries.
         Write: Write a string to the command line.
+        Resize: Send a signal to resize the screen.
+        Select: Select (highlight) rows.
+        ShowBuffers: Show a list of open Tables.
+        SaveSession: Save the current session.
+        LoadSession: Load a session.
 """
 import json
 import curses
@@ -65,7 +74,7 @@ class Scroll(Command, signals.Subject):
         cur_browser.scroll(self._direction, self._quantifier)
 
 
-class EditCell(Command, signals.Subject):
+class Update(Command, signals.Subject):
     def __init__(self, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)
         signals.Subject.__init__(self)
@@ -106,7 +115,7 @@ class EditCell(Command, signals.Subject):
 
 
 # TODO: The table created requires a restart to display.
-class CloneTable(Command, signals.Subject):
+class Clone(Command, signals.Subject):
     """Clone a table.
 
     clone tbl makes an empty table name tbl with the same schema as the
@@ -153,7 +162,7 @@ class CloneTable(Command, signals.Subject):
         #self.emit(signals.Signal.ENTRY_INSERTED)
 
 
-class NewEntry(Command, signals.Subject):
+class Insert(Command, signals.Subject):
     def __init__(self, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)
         signals.Subject.__init__(self)
@@ -177,7 +186,7 @@ class NewEntry(Command, signals.Subject):
         #cur_browser.redraw()
 
 
-class DeleteEntry(Command, signals.Subject):
+class Delete(Command, signals.Subject):
     def __init__(self, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)
         signals.Subject.__init__(self)
@@ -217,7 +226,7 @@ class DeleteEntry(Command, signals.Subject):
         shared.SelectBuffer.set([])
 
 
-class CopyEntry(Command):
+class Copy(Command):
     def execute(self):
         stat_bar = status_bar.StatusBarRegistry.get()
         cur_browser = browser.BrowserRegistry.get_buffer().get()
@@ -255,7 +264,7 @@ class CopyEntry(Command):
         shared.CopyBuffer.set(shared.CopyBuffer.DEFAULT_KEY, entries)
 
 
-class PasteEntry(Command):
+class Paste(Command):
     def execute(self):
         #cur_browser = browser.BrowserRegistry.get_cur()
         stat_bar = status_bar.StatusBarRegistry.get()
@@ -400,7 +409,7 @@ class SwitchTable(Command, signals.Subject):
 # as well as switches to an existing table.  A better implementation would
 # be to split these behaviors into two seperate commands.  Also, edit db *
 # breaks the command; no more tables can be added (switching works fine).
-class NewBrowser(Command, signals.Subject):
+class Edit(Command, signals.Subject):
     def __init__(self, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)
         signals.Subject.__init__(self)

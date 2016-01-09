@@ -6,29 +6,30 @@ everything is accounted for and that no wasteful copies are lingering
 about.
 
 Classes:
-    UIRegistry: manage the user interface.
     DBRegistry: manage database connections.
-    BrowserFactory: manage the browsers.
-    StatusBarRegistry: manage the status bar.
     CopyBuffer: manage the copy buffer.
+    SelectBuffer: manage the select buffer.
 """
 #cls class method
 import db
 
 
+# TODO: move DBRegistry to db.py.
+# Rename module.
 class DBRegistry:
     """Manage connections to databases.
 
     This class provides static methods for creating, accessing, and
     removing connections to databases.
 
-    One connection per database is allowed, which can be shared by
-    any class.
+    One connection per database is allowed, which can be shared among
+    any classes.
 
     Methods:
         get: Return a database connection.
         create: Create a database connection.
         destroy: Close a database connection.
+        destroy_add: Close all database connections.
     """
     _db_map = {}
 
@@ -36,11 +37,13 @@ class DBRegistry:
     def create(name):
         """Open a database connection.
 
-        A connection to the database is created and returned.  If the
-        connection already exists, then it is just returned.
+        If the connection already exists, then it is just returned.
 
         Args:
             name (path): The name of the database to connect to.
+
+        Returns:
+            The database connection.
         """
         if name not in DBRegistry._db_map:
             DBRegistry._db_map[name] = db.DBConnection(name)
@@ -55,7 +58,7 @@ class DBRegistry:
 
         Raises:
             KeyError: if no database with the given name has been
-                connected to.
+                created.
         """
         return DBRegistry._db_map[name]
 
@@ -68,13 +71,14 @@ class DBRegistry:
 
         Raises:
             KeyError: if no database with the given name has been
-                connected to.
+                created.
         """
         DBRegistry._db_map[name].close()
         DBRegistry._db_map.pop(name)
 
     @staticmethod
     def destroy_all():
+        """Close all database connections."""
         for db in DBRegistry._db_map.values():
             db.close()
         DBRegistry._db_map.clear()
@@ -84,16 +88,13 @@ class CopyBuffer:
     """Manage the copy buffers.
 
     This class provides static methods to access and modify the copy
-    buffers. The copy buffer is simply a map from a single character
-    (English alphabet, upper or lower case) to a tuple. The name of
-    a buffer is thus the character used as the key, and the contents
-    of a buffer is the tuple.  The tuple is intended to represent a row
-    in a database table. Thus, its elements should be the values of
-    each column.  Use this class to copy a row from one table into 
-    another table (provided both have the same schema).
+    buffers. The copy buffer is a map from a single character
+    (English alphabet, upper or lower case) to a list of tuples.
+    Use this class to copy rows from one table into another table
+    (provided both have the same schema).
 
     Attributes:
-        DEFAULT_BUFFER: The buffer that is used if no buffer is given.
+        DEFAULT_BUFFER: The buffer that is used if none is given.
 
     Methods:
         get: Return the contents of a copy buffer.
@@ -108,8 +109,9 @@ class CopyBuffer:
 
         Args:
             key (char): The name of the buffer.
-            val (tuple): The new content of the buffer. Each element is
-                the value of a column in some database table.
+            val ([tuple]): The new content of the buffer.  Each tuple
+                is a row in a database table, and each tuple element
+                is a column's value.
         """
         CopyBuffer._copy_buffer[key] = val
 
@@ -120,6 +122,10 @@ class CopyBuffer:
         Args:
             key: The name of the buffer.
 
+        Returns:
+            A list of tuples.  Each tuple is a row in a database table,
+            and each tuple element is a column's value.
+
         Raises:
             KeyError: if no buffer with the given name exists.
         """
@@ -127,12 +133,36 @@ class CopyBuffer:
 
 
 class SelectBuffer:
+    """Manage the select buffer.
+
+    This class provides static methods to access and modify the select
+    buffer.  The select buffer holds the rows that are currently
+    selected.  The rows are stored as a list of tuples, exactly as in
+    CopyBuffer.
+
+    Methods:
+        set: Change the contents of the select buffer.
+        get: Return the contents of the select buffer.
+    """
     _select_buffer = []
 
     @staticmethod
     def set(rows):
+        """Change the contents of the buffer.
+
+        Args:
+            rows ([tuple]): The new contents of the buffer.  Each tuple
+                is a row in a database table, and each tuple element
+                is a column's value.
+        """
         SelectBuffer._select_buffer = rows
 
     @staticmethod
     def get():
+        """Return the contents of the buffer.
+
+        Returns:
+            A list of tuples.  Each tuple is a row in a database table,
+            and each tuple element is a column's value.
+        """
         return SelectBuffer._select_buffer

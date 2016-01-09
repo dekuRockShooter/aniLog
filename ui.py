@@ -8,7 +8,7 @@ import status_bar
 from shared import DBRegistry
 
 # TODO: merge in aniLog.py
-class UI(signals.Observer):
+class UI():
     """Display all widgets and get keyboard input.
 
     This class starts curses and displays all of the widgets. It
@@ -26,16 +26,11 @@ class UI(signals.Observer):
         Args:
             key_map (KeyMap): The keymap to use for the interface.
         """
-        signals.Subject.__init__(self)
-        signals.Observer.__init__(self)
         self._win = None
         self._key_map = key_map
-        cmd_map = settings.keys.CommandMap.get()
-        cmd_map['next_browser'].register(self)
-        cmd_map['prev_browser'].register(self)
 
     def create(self):
-        """Start curses and create the user interface."""
+        """Start curses and the user interface."""
         os.environ['ESCDELAY'] = '25'
         self._win = curses.initscr()
         curses.cbreak()
@@ -43,37 +38,6 @@ class UI(signals.Observer):
         curses.curs_set(0)
         self._set_coords()
         self._create_widgets()
-
-    def _create_widgets(self):
-        ##status_bar.StatusBarRegistry.create(1, settings.keys.cmd_map).update()
-        #tables = [('watching'), ('backlog'), ('completed')]
-        #for table in tables:
-            #try:
-                #b = browser.BrowserRegistry.create(
-                       #positions.DEFAULT_DB_NAME,
-                       #table)
-            #except FileNotFoundError as err:
-                ##stat_bar.prompt(str(err), enums.Prompt.ERROR)
-                #continue
-            #except ValueError as err:
-                ##stat_bar.prompt(str(err), enums.Prompt.ERROR)
-                #continue
-            #b.create()
-        status_bar.StatusBarRegistry.create(1,
-                settings.keys.CommandMap.get()).update()
-
-    def _set_coords(self):
-        curses.update_lines_cols()
-        if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:
-            positions.STATUS_BAR_COORDS = (0, 0)
-            positions.BROWSER_UPPER_LEFT_COORDS = (1, 0)
-            positions.BROWSER_BOTTOM_RIGHT_COORDS = (curses.LINES - 1,
-                                                    curses.COLS - 1)
-        else:
-            positions.STATUS_BAR_COORDS = (curses.LINES - 1, 0)
-            positions.BROWSER_UPPER_LEFT_COORDS = (0, 0)
-            positions.BROWSER_BOTTOM_RIGHT_COORDS = (curses.LINES - 2,
-                                                    curses.COLS - 1)
 
     def destroy(self):
         """Destroy all object and end curses."""
@@ -88,12 +52,7 @@ class UI(signals.Observer):
     # This would be a problem, but the current while loop conditional is
     # temporary,.  Fixing this bug right now might actually be a bad thing.
     def get_key(self):
-        """Get keys from the user and run a command.
-
-        Keys are sent to KeyMap's get_cmd method, which returns
-        the Command object that corresponds to the current key or
-        keysequence.  If the command is valid, then it is executed.
-        """
+        """Get a sequence of keys from the user and run a command."""
         key = 0
         cmd = None
         while key != ord('q'):
@@ -119,25 +78,32 @@ class UI(signals.Observer):
             if cmd is not None:
                 cmd.execute()
 
-    def on_browser_switch(self):
-        """Display a new browser.
+    def _create_widgets(self):
+        """Create the basic widgets to display on startup."""
+        status_bar.StatusBarRegistry.create(1,
+                settings.keys.CommandMap.get()).update()
 
-        This method should be called whenever the current browser has
-        changed. It simply redraws the current browser (as indicated by
-        BrowserRegistry.get()).
-        """
-        browser.BrowserRegistry.get_cur().redraw()
-
-    def receive_signal(self, signal, args):
-        if signal == signals.Signal.BROWSER_SWITCHED:
-            self.on_browser_switch()
+    # TODO: This will most likely change when the config file is done.
+    def _set_coords(self):
+        """Set the coordinates for the widgets."""
+        curses.update_lines_cols()
+        if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:
+            positions.STATUS_BAR_COORDS = (0, 0)
+            positions.BROWSER_UPPER_LEFT_COORDS = (1, 0)
+            positions.BROWSER_BOTTOM_RIGHT_COORDS = (curses.LINES - 1,
+                                                    curses.COLS - 1)
+        else:
+            positions.STATUS_BAR_COORDS = (curses.LINES - 1, 0)
+            positions.BROWSER_UPPER_LEFT_COORDS = (0, 0)
+            positions.BROWSER_BOTTOM_RIGHT_COORDS = (curses.LINES - 2,
+                                                    curses.COLS - 1)
 
 
 class UIRegistry:
     """Manage the user interface.
 
     This class provides static methods to create and access the user
-    interface. It makes sure that there is only one user interface.
+    interface.  It makes sure that there is only one user interface.
 
     Methods:
         get: return the reference to the user interface.
@@ -155,10 +121,11 @@ class UIRegistry:
     def create(keymap):
         """Create the user interface if it doesn't exist already.
 
-        The user interface is returned.
-
         Args:
             keymap (KeyMap): The keymap to use.
+
+        Returns:
+            The user interface.
         """
         if UIRegistry._ui is None:
             UIRegistry._ui = UI(keymap)
@@ -166,8 +133,5 @@ class UIRegistry:
 
     @staticmethod
     def destroy():
-        """Destroy the user interface.
-
-        This method calls the user interface's destroy method.
-        """
+        """Destroy the user interface."""
         UIRegistry._ui.destroy()

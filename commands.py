@@ -111,7 +111,6 @@ class Update(Command, signals.Subject):
         cur_db.execute(s)
         cur_db.commit()
         self.emit(signals.Signal.ENTRY_UPDATED)
-        cur_browser.on_entry_updated()
 
 
 # TODO: The table created requires a restart to display.

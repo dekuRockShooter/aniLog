@@ -39,10 +39,6 @@ class Coordinates:
 # get_table_by_id and get_table_by_name and get_cur_table, destroy to
 # destroy_cur and destroy_by_name and destroy_by_id.
 
-# Rename on_entry_inserted to _on_entry_inserted after removing the call in
-#   commands.py:279.
-# Rename on_entry_updated to _on_entry_updated after removing the call in
-#   commands.py:105.
 # Rename get_prim_key to get_cur_row_pks after removing calls that use it.
 # Rename get_col_name to get_cur_col_name after removing calls that use it.
 # Rename scroll to _on_scroll after removing calls that use it and creating
@@ -348,7 +344,7 @@ class Browser(signals.Observer):
         self._populate_browser(row)
         self.scroll(enums.Scroll.END)
 
-    def on_entry_updated(self):
+    def _on_entry_updated(self):
         """Redraw the current cell's value.
 
         This updates the current cell's value to match what it is in
@@ -454,7 +450,7 @@ class Browser(signals.Observer):
         elif signal is signals.Signal.ENTRY_DELETED:
             self.on_entry_deleted()
         elif signal is signals.Signal.ENTRY_UPDATED:
-            self.on_entry_updated()
+            self._on_entry_updated()
         elif signal is signals.Signal.NEW_QUERY:
             self.on_new_query(args)
         elif signal is signals.Signal.ENTRIES_SELECTED:
@@ -606,8 +602,6 @@ class NullBrowser(Browser):
     def redraw(self):
         pass
     def on_new_query(self, rows):
-        pass
-    def on_entry_updated(self):
         pass
     def on_entry_deleted(self):
         pass

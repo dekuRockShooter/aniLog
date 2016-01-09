@@ -432,7 +432,7 @@ class Browser(signals.Observer):
         """
         return self._row_ids[self._cur_row]
 
-    def get_col_name(self):
+    def get_cur_col_name(self):
         """Return the column name of the current cell."""
         return self._col_names[self._cur_col]
 
@@ -616,7 +616,7 @@ class NullBrowser(Browser):
         return ''
     def get_cur_row_pks(self):
         return []
-    def get_col_name(self):
+    def get_cur_col_name(self):
         return ''
     def receive_signal(self, signal, args=None):
         pass

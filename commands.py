@@ -104,7 +104,7 @@ class Update(Command, signals.Subject):
         s = 'update "{table}" set "{col_name}"="{value}"\
                 where "{primary_key}"="{id}"'.format(
                 table=cur_browser.get_table_name(),
-                col_name=cur_browser.get_col_name(),
+                col_name=cur_browser.get_cur_col_name(),
                 value=new_val,
                 primary_key=cur_browser.PRIMARY_KEY,
                 id=prim_key)
@@ -512,7 +512,7 @@ class Filter(Command, signals.Subject):
         arg = stat_bar.get_cmd_args()
         #cur_browser = browser.BrowserRegistry.get_cur()
         cur_browser = browser.BrowserRegistry.get_buffer().get()
-        col_name = cur_browser.get_col_name()
+        col_name = cur_browser.get_cur_col_name()
         db_name = cur_browser.get_db_name()
         table_name = cur_browser.get_table_name()
         try:
@@ -570,7 +570,7 @@ class Sort(Command, signals.Subject):
                 return
             col_name = args[sep_idx + 1:]
         if not col_name:
-            col_name = cur_browser.get_col_name()
+            col_name = cur_browser.get_cur_col_name()
         s = 'select * from "{table}" order by "{col_name}" {dir}'.format(
                 table=table_name,
                 col_name=col_name,
@@ -630,7 +630,7 @@ class Write(Command):
                 if letter == 'p':
                     letter = str(cur_browser.get_cur_row_pks())
                 elif letter == 'c':
-                    letter = cur_browser.get_col_name()
+                    letter = cur_browser.get_cur_col_name()
                 elif letter == 'v':
                     letter = str(cur_browser.get_cur_cell())
                 elif letter == '%':

@@ -181,6 +181,7 @@ class Browser(signals.Observer):
         cmd_map['filter'].register(self)
         cmd_map['resize'].register(self)
         cmd_map['select'].register(self)
+        cmd_map['paste'].register(self)
 
     # TODO: Don't hardcode the beginning of the first column. It wont
     # necessarily be zero. Also, account for zero widths.
@@ -337,7 +338,7 @@ class Browser(signals.Observer):
 
     # TODO: This only shows the newest row.  Make it show all rows inserted
     # since the last redraw.
-    def on_entry_inserted(self):
+    def _on_entry_inserted(self):
         """Redraw the table to include newly inserted rows.
 
         This redraws the table with the rows that were inserted since the
@@ -449,7 +450,7 @@ class Browser(signals.Observer):
         if (buffer is None) or (buffer.get() is not self):
             return
         elif signal is signals.Signal.ENTRY_INSERTED:
-            self.on_entry_inserted()
+            self._on_entry_inserted()
         elif signal is signals.Signal.ENTRY_DELETED:
             self.on_entry_deleted()
         elif signal is signals.Signal.ENTRY_UPDATED:
@@ -605,8 +606,6 @@ class NullBrowser(Browser):
     def redraw(self):
         pass
     def on_new_query(self, rows):
-        pass
-    def on_entry_inserted(self):
         pass
     def on_entry_updated(self):
         pass

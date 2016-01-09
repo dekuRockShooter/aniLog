@@ -264,9 +264,12 @@ class Copy(Command):
         shared.CopyBuffer.set(shared.CopyBuffer.DEFAULT_KEY, entries)
 
 
-class Paste(Command):
+class Paste(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
     def execute(self):
-        #cur_browser = browser.BrowserRegistry.get_cur()
         stat_bar = status_bar.StatusBarRegistry.get()
         cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
@@ -285,7 +288,7 @@ class Paste(Command):
                     val=values)
             cur_db.execute(s)
         cur_db.commit()
-        cur_browser.on_entry_inserted()
+        self.emit(signals.Signal.ENTRY_INSERTED)
 
 
 class NextBrowser(Command, signals.Subject):

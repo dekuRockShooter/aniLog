@@ -9,17 +9,17 @@ class CommandMap:
     def get():
         if CommandMap.cmd_map:
             return CommandMap.cmd_map
-        clone_cmd = commands.CloneTable('', '')
+        clone_cmd = commands.Clone('', '')
         CommandMap.cmd_map = {
             'filter': commands.Filter('', ''),
-            'update': commands.EditCell('', ''),
-            'new_entry': commands.NewEntry('', ''),
-            'del_entry': commands.DeleteEntry('', ''),
+            'update': commands.Update('', ''),
+            'new_entry': commands.Insert('', ''),
+            'del_entry': commands.Delete('', ''),
             'sort': commands.Sort('', ''),
             'next_browser': commands.NextBrowser('', ''),
             'prev_browser': commands.PreviousBrowser('', ''),
             'resize': commands.Resize('', ''),
-            'edit': commands.NewBrowser('', ''),
+            'edit': commands.Edit('', ''),
             'select': commands.Select('', ''),
             'ls': commands.ShowBuffers('', ''),
             'clone': clone_cmd,
@@ -29,6 +29,7 @@ class CommandMap:
             'b#': commands.SwitchTable('', ''),
             'mksession': commands.SaveSession('', ''),
             'ldsession': commands.LoadSession('', ''),
+            'paste': commands.Paste('', ''),
             }
         return CommandMap.cmd_map
 
@@ -63,8 +64,8 @@ class KeyMap:
         KeyMap.key_map.add_key('$', commands.Scroll(
             enums.Scroll.H_END, '', ''))
         KeyMap.key_map.add_key('i', cmd_map['new_entry'])
-        KeyMap.key_map.add_key('yy',commands.CopyEntry('', ''))
-        KeyMap.key_map.add_key('p',commands.PasteEntry('', ''))
+        KeyMap.key_map.add_key('yy', commands.Copy('', ''))
+        KeyMap.key_map.add_key('p',cmd_map['paste'])
         KeyMap.key_map.add_key('gt', cmd_map['next_browser'])
         KeyMap.key_map.add_key('gT', cmd_map['prev_browser'])
         KeyMap.key_map.add_key(':',commands.Write('', '', ''))

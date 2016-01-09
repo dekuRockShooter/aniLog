@@ -30,7 +30,6 @@ class Coordinates:
 
 
 # TODO: 
-# _row_ids to _primary_keys,
 
 # Rename scroll to _on_scroll after removing calls that use it and creating
 #   a scroll signal.
@@ -128,7 +127,7 @@ class Browser(signals.Observer):
                 db=db_name, table=table))
         self.PRIMARY_KEY = 'rowid'
         self._COL_NAMES = self._DB.get_col_names(table)
-        self._row_ids = []
+        self._primary_keys = []
         self._DB_NAME = db_name
         self._TABLE_NAME = table
         self._VIS_RNG = [positions.BROWSER_BOTTOM_RIGHT_COORDS[0] -
@@ -221,7 +220,7 @@ class Browser(signals.Observer):
         self._pad.clear()
         self._row_count = 0
         self._cur_row = 0
-        self._row_ids.clear()
+        self._primary_keys.clear()
         self._populate_browser(rows)
 
     def _setup_curses(self):
@@ -255,7 +254,7 @@ class Browser(signals.Observer):
         if (self._row_count + len(rows)) > self._row_capacity:
             self._resize(2 * (self._row_count + len(rows)))
         for row in rows:
-            self._row_ids.append(row[0])
+            self._primary_keys.append(row[0])
 
             # Write each column with the correct width at the correct coord,
             # starting at the _row_count'th row.
@@ -359,7 +358,7 @@ class Browser(signals.Observer):
         This redraws the table without rows that were deleted since the last
         redraw.
         """
-        self._row_ids.pop(self._cur_row)
+        self._primary_keys.pop(self._cur_row)
         self._pad.deleteln()
         self._row_count = self._row_count - 1
         if self._cur_row >= self._row_count:
@@ -393,7 +392,7 @@ class Browser(signals.Observer):
                 format(col_name=self._COL_NAMES[self._cur_col],
                        table=self._TABLE_NAME,
                        prim_key=self.PRIMARY_KEY,
-                       key=self._row_ids[self._cur_row])
+                       key=self._primary_keys[self._cur_row])
         return self._DB.execute(cmd)[0][0]
 
     def get_name(self):
@@ -419,7 +418,7 @@ class Browser(signals.Observer):
         Returns:
             A list of the primary key values of the current row.
         """
-        return self._row_ids[self._cur_row]
+        return self._primary_keys[self._cur_row]
 
     def get_cur_col_name(self):
         """Return the column name of the current cell."""
@@ -542,7 +541,7 @@ class Browser(signals.Observer):
         # highlight next line and scroll down
         select_buffer = shared.SelectBuffer.get()
         cur_cell_coords = self._col_coords[self._cur_col]
-        if str(self._row_ids[prev_row]) not in self._select_buffer:
+        if str(self._primary_keys[prev_row]) not in self._select_buffer:
             self._pad.addstr(prev_row, prev_cell_coords.beg, prev_cell_val)
         cur_cell_val = self._pad.instr(self._cur_row, cur_cell_coords.beg,
                 cur_cell_coords.sep - cur_cell_coords.beg)
@@ -558,13 +557,15 @@ class Browser(signals.Observer):
         select_buffer = shared.SelectBuffer.get()
         for id_str in self._select_buffer:
             id = int(id_str)
-            row_idx = bisect.bisect_left(self._row_ids, id)
-            if row_idx != len(self._row_ids) and self._row_ids[row_idx] == id:
+            row_idx = bisect.bisect_left(self._primary_keys, id)
+            if row_idx != len(self._primary_keys) and\
+                    self._primary_keys[row_idx] == id:
                 self._pad.chgat(row_idx, 0, -1, curses.A_NORMAL)
         for id_str in select_buffer:
             id = int(id_str)
-            row_idx = bisect.bisect_left(self._row_ids, id)
-            if row_idx != len(self._row_ids) and self._row_ids[row_idx] == id:
+            row_idx = bisect.bisect_left(self._primary_keys, id)
+            if row_idx != len(self._primary_keys) and\
+                    self._primary_keys[row_idx] == id:
                 self._pad.chgat(row_idx, 0, -1, curses.A_STANDOUT)
         self._select_buffer = select_buffer
 

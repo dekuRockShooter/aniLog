@@ -31,10 +31,7 @@ class Coordinates:
 
 # TODO: 
 # _row_ids to _primary_keys,
-#  browser_generator to table_generator,
-# remove_from_name to remove_by_name, remove_from_id to remove_by_id, get to
-# get_table_by_id and get_table_by_name and get_cur_table, destroy to
-# destroy_cur and destroy_by_name and destroy_by_id.
+#  destroy to destroy_cur and destroy_by_name and destroy_by_id.
 
 # Rename scroll to _on_scroll after removing calls that use it and creating
 #   a scroll signal.
@@ -665,7 +662,7 @@ class BrowserBuffer(signals.Observer):
         """
         return (item for item in self._name_map.items())
 
-    def browser_generator(self):
+    def table_generator(self):
         """Return a generator for Tables.
 
         The generator generates tuples of the form (Table name, Table).
@@ -690,7 +687,7 @@ class BrowserBuffer(signals.Observer):
         self._browser_map[name] = browser
         self._id = self._id + 1
 
-    def remove_from_name(self, name):
+    def remove_by_name(self, name):
         """Remove the Table with the given name.
 
         Args:
@@ -704,9 +701,9 @@ class BrowserBuffer(signals.Observer):
         if not self._name_map:
             return
         id = next((k for k, v in self._name_map.items() if v == name))
-        self.remove_from_id(id)
+        self.remove_by_id(id)
 
-    def remove_from_id(self, id):
+    def remove_by_id(self, id):
         """Remove the Table with the given id.
 
         Args:
@@ -729,7 +726,7 @@ class BrowserBuffer(signals.Observer):
             ValueError: if there is only one Table.
         """
         name = self._cur.get_name()
-        self.remove_from_name(name)
+        self.remove_by_name(name)
 
     # TODO: delete the Tables.  This means disconnecting them from their
     # respective databases.  This might be better suited to another method,
@@ -782,8 +779,7 @@ class BrowserBuffer(signals.Observer):
         removed_browser.destroy()
         self._cur.redraw()
 
-    # TODO: Make seperate methods for each parameter.
-    def get(self, id=None, name=None):
+    def get_by_id(self, id):
         """Return the Table with the given id.
 
         Args:
@@ -792,6 +788,10 @@ class BrowserBuffer(signals.Observer):
         Raises:
             KeyError: if no Table has the given id.
         """
+        name = self._name_map[id]
+        return self._browser_map[name]
+
+    def get_by_name(self, name):
         """Return the Table with the given name.
 
         Args:
@@ -801,14 +801,11 @@ class BrowserBuffer(signals.Observer):
         Raises:
             KeyError: if no Table has the given name.
         """
+        return self._browser_map[name]
+
+    def get(self):
         """Return the currently visible Table."""
-        if id is not None:
-            name = self._name_map[id]
-            return self._browser_map[name]
-        elif name is not None:
-            return self._browser_map[name]
-        else:
-            return self._cur
+        return self._cur
 
     def set_cur_to_prev(self):
         """Set the current Table to the previous one.
@@ -1016,14 +1013,14 @@ class BrowserRegistry:
         name_gen = BrowserRegistry._browser_buffer.name_generator()
         for id, browser_name in iter(name_gen):
             if browser_name == name:
-                return BrowserRegistry._browser_buffer.get(name=name)
+                return BrowserRegistry._browser_buffer.get_by_name(name)
         new_browser = Browser(db_name, table)
         BrowserRegistry._browser_map[name] = new_browser
         BrowserRegistry._browser_indexes.insert(BrowserRegistry._cur_idx + 1,
                                                new_browser)
         #BrowserRegistry.set_cur(BrowserRegistry._cur_idx + 1)
         BrowserRegistry._browser_buffer.add(name, new_browser)
-        BrowserRegistry._browser_buffer.get(name=name).create()
+        BrowserRegistry._browser_buffer.get_by_name(name).create()
         BrowserRegistry._browser_buffer.set_cur_from_name(name)
         return new_browser
 

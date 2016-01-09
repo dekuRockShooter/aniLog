@@ -334,7 +334,7 @@ class RemoveTable(Command, signals.Subject):
                 buffer.remove_cur()
                 return
             elif args.isdigit():
-                buffer.remove_from_id(int(args))
+                buffer.remove_by_id(int(args))
                 return
         except KeyError:
             pass
@@ -349,7 +349,7 @@ class RemoveTable(Command, signals.Subject):
             name_gen = buffer.name_generator()
             for id, name in iter(name_gen):
                 if pattern.search(name) is not None:
-                    buffer.remove_from_id(id)
+                    buffer.remove_by_id(id)
                     return
         except KeyError:
             stat_bar.prompt('No matching table found.', enums.Prompt.ERROR)
@@ -759,7 +759,7 @@ class SaveSession(Command, signals.Subject):
                     enums.Prompt.ERROR)
             return
         session = open(args, 'w')
-        for name, table in iter(buffer.browser_generator()):
+        for name, table in iter(buffer.table_generator()):
             table_name = table.get_table_name()
             db_name = table.get_db_name()
             json.dump((db_name, table_name), session)

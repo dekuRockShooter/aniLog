@@ -39,7 +39,6 @@ class Coordinates:
 # get_table_by_id and get_table_by_name and get_cur_table, destroy to
 # destroy_cur and destroy_by_name and destroy_by_id.
 
-# Rename get_col_name to get_cur_col_name after removing calls that use it.
 # Rename scroll to _on_scroll after removing calls that use it and creating
 #   a scroll signal.
 
@@ -149,7 +148,7 @@ class Browser(signals.Observer):
         self._row_count = 0
         self._SCR_COORDS = [positions.BROWSER_UPPER_LEFT_COORDS,
                             positions.BROWSER_BOTTOM_RIGHT_COORDS]
-        self._END_ROW = 1 # The last row in the pad.
+        self._row_capacity = 1 # The last row in the pad.
         self._BEG_ROW = 0
         self._bot_row = 0 # The last row in the pad that is visible.
         self._top_row = self._VIS_RNG[0] # TODO: this should be bot_row
@@ -241,9 +240,9 @@ class Browser(signals.Observer):
         if self._pad != None:
             return
         curses.initscr()
-        self._END_ROW = positions.BROWSER_BOTTOM_RIGHT_COORDS[0] * 2
+        self._row_capacity = positions.BROWSER_BOTTOM_RIGHT_COORDS[0] * 2
         self._END_COL = positions.BROWSER_BOTTOM_RIGHT_COORDS[1] * 2
-        self._pad = curses.newpad(self._END_ROW, self._END_COL)
+        self._pad = curses.newpad(self._row_capacity, self._END_COL)
         self._pad.keypad(1)
         self._pad.leaveok(0)
 
@@ -263,7 +262,7 @@ class Browser(signals.Observer):
         """
         if not rows:
             return
-        if (self._row_count + len(rows)) > self._END_ROW:
+        if (self._row_count + len(rows)) > self._row_capacity:
             self._resize(2 * (self._row_count + len(rows)))
         for row in rows:
             self._row_ids.append(row[0])
@@ -303,19 +302,19 @@ class Browser(signals.Observer):
             cols: The new number of columns. This must be greater than
                 the current number of columns in order to resize the pad.
         """
-        if (rows <= self._END_ROW) and (cols <= self._END_COL):
+        if (rows <= self._row_capacity) and (cols <= self._END_COL):
             return
         # Get the new number of rows.
         if rows is None:
-            self._END_ROW = 2 * self._END_ROW
-        elif rows > self._END_ROW:
-            self._END_ROW = rows
+            self._row_capacity = 2 * self._row_capacity
+        elif rows > self._row_capacity:
+            self._row_capacity = rows
         # Get the new number of columns.
         if cols is None:
             self._END_COL = 2 * self._END_COL
         elif cols > self._END_COL:
             self._END_COL =cols
-        self._pad.resize(self._END_ROW, self._END_COL)
+        self._pad.resize(self._row_capacity, self._END_COL)
 
     def on_new_query(self, rows):
         """Display the given rows.
@@ -380,7 +379,7 @@ class Browser(signals.Observer):
     # TODO: Resize horizontally.
     def on_screen_resize(self):
         """Redraw the table to fit in the screen."""
-        if self._END_ROW < positions.BROWSER_BOTTOM_RIGHT_COORDS[0]:
+        if self._row_capacity < positions.BROWSER_BOTTOM_RIGHT_COORDS[0]:
             self._resize(rows=positions.BROWSER_BOTTOM_RIGHT_COORDS[0] * 2,
                          cols=0)
         self._VIS_RNG = [positions.BROWSER_BOTTOM_RIGHT_COORDS[0] -
@@ -658,8 +657,8 @@ class BrowserBuffer(signals.Observer):
         self._name_map = {}
         self._browser_map = {}
         curses.initscr()
-        self._END_ROW = 2
-        self._pad = curses.newpad(self._END_ROW, curses.COLS)
+        self._row_capacity = 2
+        self._pad = curses.newpad(self._row_capacity, curses.COLS)
         self._id = 0
         self._cur = null_browser
         self._prev = null_browser
@@ -753,7 +752,7 @@ class BrowserBuffer(signals.Observer):
         self._cur = null_browser
         self._prev = null_browser
         self._id = 0
-        self._END_ROW = 2
+        self._row_capacity = 2
 
     def _remove_startup(self):
         """Ensure that the last Table is not being removed."""
@@ -866,9 +865,9 @@ class BrowserBuffer(signals.Observer):
 
     def _update(self):
         """Write Table ids and names to the pad."""
-        if len(self._name_map) > self._END_ROW:
-            self._END_ROW = len(self._name_map)
-            self._pad.resize(self._END_ROW * 2, curses.COLS)
+        if len(self._name_map) > self._row_capacity:
+            self._row_capacity = len(self._name_map)
+            self._pad.resize(self._row_capacity * 2, curses.COLS)
         row_count = 0
         self._pad.clear()
         for id, name in self._name_map.items():

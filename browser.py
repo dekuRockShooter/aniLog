@@ -31,10 +31,7 @@ class Coordinates:
 
 # TODO: 
 # _row_ids to _primary_keys,
-#  _col_names to _COL_NAMES, _bot_row to _last_vis_row, _top_row
-# to _first_vis_row, _left_col to _first_vis_col, _right_col to _last_vis_col,
-# on_new_query to _on_new_query, on_entry_deleted to _on_entry_deleted,
-# on_screen_resize to _on_screen_resize, browser_generator to table_generator,
+#  browser_generator to table_generator,
 # remove_from_name to remove_by_name, remove_from_id to remove_by_id, get to
 # get_table_by_id and get_table_by_name and get_cur_table, destroy to
 # destroy_cur and destroy_by_name and destroy_by_id.
@@ -150,13 +147,13 @@ class Browser(signals.Observer):
                             positions.BROWSER_BOTTOM_RIGHT_COORDS]
         self._row_capacity = 1 # The last row in the pad.
         self._BEG_ROW = 0
-        self._bot_row = 0 # The last row in the pad that is visible.
-        self._top_row = self._VIS_RNG[0] # TODO: this should be bot_row
+        self._last_vis_row = 0 # The last row in the pad that is visible.
+        self._first_vis_row = self._VIS_RNG[0] # TODO: this should be bot_row
 
         self._col_capacity = int(sum(col_widths) + 2*len(col_widths))
         self._BEG_COL = 0
-        self._left_col = 0
-        self._right_col = self._VIS_RNG[1]
+        self._first_vis_col = 0
+        self._last_vis_col = self._VIS_RNG[1]
 
         self._cur_row = 0
         self._cur_col = 0 # zero based
@@ -283,7 +280,7 @@ class Browser(signals.Observer):
 
     def redraw(self):
         """Redraw the screen to show new changes."""
-        self._pad.refresh(self._top_row, self._left_col,
+        self._pad.refresh(self._first_vis_row, self._first_vis_col,
                           *self._SCR_COORDS[0], *self._SCR_COORDS[1])
 
     def _resize(self, rows=None, cols=None):
@@ -316,7 +313,7 @@ class Browser(signals.Observer):
             self._col_capacity = cols
         self._pad.resize(self._row_capacity, self._col_capacity)
 
-    def on_new_query(self, rows):
+    def _on_new_query(self, rows):
         """Display the given rows.
 
         The table is cleared, and the new rows are displayed.
@@ -363,7 +360,7 @@ class Browser(signals.Observer):
     # TODO: This redraws the table with one less row.  Make it able to redraw
     # the table without all the deleted rows.
     # since the last redraw.
-    def on_entry_deleted(self):
+    def _on_entry_deleted(self):
         """Redraw the table to exclude newly deleted rows.
 
         This redraws the table without rows that were deleted since the last
@@ -377,7 +374,7 @@ class Browser(signals.Observer):
         self.redraw()
 
     # TODO: Resize horizontally.
-    def on_screen_resize(self):
+    def _on_screen_resize(self):
         """Redraw the table to fit in the screen."""
         if self._row_capacity < positions.BROWSER_BOTTOM_RIGHT_COORDS[0]:
             self._resize(rows=positions.BROWSER_BOTTOM_RIGHT_COORDS[0] * 2,
@@ -388,8 +385,8 @@ class Browser(signals.Observer):
                              positions.BROWSER_UPPER_LEFT_COORDS[1]]
         self._SCR_COORDS = [positions.BROWSER_UPPER_LEFT_COORDS,
                             positions.BROWSER_BOTTOM_RIGHT_COORDS]
-        self._top_row = self._VIS_RNG[0] # TODO: this should be bot_row
-        self._right_col = self._VIS_RNG[1]
+        self._first_vis_row = self._VIS_RNG[0] # TODO: this should be bot_row
+        self._last_vis_col = self._VIS_RNG[1]
         self.redraw()
 
     # TODO: maybe move this to a method in DBConnection.
@@ -438,7 +435,7 @@ class Browser(signals.Observer):
     def receive_signal(self, signal, args=None):
         """Override singals.Observer."""
         if signal is signals.Signal.SCREEN_RESIZED:
-            self.on_screen_resize()
+            self._on_screen_resize()
             return
         buffer = BrowserRegistry.get_buffer()
         if (buffer is None) or (buffer.get() is not self):
@@ -446,11 +443,11 @@ class Browser(signals.Observer):
         elif signal is signals.Signal.ENTRY_INSERTED:
             self._on_entry_inserted()
         elif signal is signals.Signal.ENTRY_DELETED:
-            self.on_entry_deleted()
+            self._on_entry_deleted()
         elif signal is signals.Signal.ENTRY_UPDATED:
             self._on_entry_updated()
         elif signal is signals.Signal.NEW_QUERY:
-            self.on_new_query(args)
+            self._on_new_query(args)
         elif signal is signals.Signal.ENTRIES_SELECTED:
             self._on_select()
 
@@ -522,17 +519,17 @@ class Browser(signals.Observer):
                          enums.Scroll.END, enums.Scroll.HOME):
             self._cur_row = self._cur_row + self._lines_to_scroll(direction)
             if self._cur_row > self._row_count - 1:
-                self._cur_row = self._bot_row = self._row_count - 1
-                self._top_row = self._bot_row - self._VIS_RNG[0]
-            elif self._cur_row > self._bot_row:
-                self._bot_row = self._cur_row
-                self._top_row = self._bot_row - self._VIS_RNG[0]
+                self._cur_row = self._last_vis_row = self._row_count - 1
+                self._first_vis_row = self._last_vis_row - self._VIS_RNG[0]
+            elif self._cur_row > self._last_vis_row:
+                self._last_vis_row = self._cur_row
+                self._first_vis_row = self._last_vis_row - self._VIS_RNG[0]
             elif self._cur_row < self._BEG_ROW:
-                self._cur_row = self._top_row = self._BEG_ROW
-                self._bot_row = self._top_row + self._VIS_RNG[0]
-            elif self._cur_row < self._top_row:
-                self._top_row = self._cur_row
-                self._bot_row = self._top_row + self._VIS_RNG[0]
+                self._cur_row = self._first_vis_row = self._BEG_ROW
+                self._last_vis_row = self._first_vis_row + self._VIS_RNG[0]
+            elif self._cur_row < self._first_vis_row:
+                self._first_vis_row = self._cur_row
+                self._last_vis_row = self._first_vis_row + self._VIS_RNG[0]
 
         elif direction in (enums.Scroll.RIGHT, enums.Scroll.LEFT,
                          enums.Scroll.PAGE_RIGHT, enums.Scroll.PAGE_LEFT,
@@ -542,12 +539,12 @@ class Browser(signals.Observer):
                 self._cur_col = 0
             elif self._cur_col >= len(self._COL_NAMES):
                 self._cur_col = len(self._COL_NAMES) - 1
-            if self._col_coords[self._cur_col].sep > self._right_col:
-                self._right_col = self._col_coords[self._cur_col].sep
-                self._left_col = self._right_col - self._VIS_RNG[1]
-            elif self._col_coords[self._cur_col].beg < self._left_col:
-                self._left_col = self._col_coords[self._cur_col].beg
-                self._right_col = self._left_col + self._VIS_RNG[1]
+            if self._col_coords[self._cur_col].sep > self._last_vis_col:
+                self._last_vis_col = self._col_coords[self._cur_col].sep
+                self._first_vis_col = self._last_vis_col - self._VIS_RNG[1]
+            elif self._col_coords[self._cur_col].beg < self._first_vis_col:
+                self._first_vis_col = self._col_coords[self._cur_col].beg
+                self._last_vis_col = self._first_vis_col + self._VIS_RNG[1]
 
         # highlight next line and scroll down
         select_buffer = shared.SelectBuffer.get()
@@ -598,12 +595,6 @@ class NullBrowser(Browser):
     def destroy(self):
         pass
     def redraw(self):
-        pass
-    def on_new_query(self, rows):
-        pass
-    def on_entry_deleted(self):
-        pass
-    def on_screen_resize(self):
         pass
     def get_cur_cell(self):
         return ''

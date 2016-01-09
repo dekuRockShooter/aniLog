@@ -31,13 +31,9 @@ class Coordinates:
 
 # TODO: 
 # _row_ids to _primary_keys,
-#  destroy to destroy_cur and destroy_by_name and destroy_by_id.
 
 # Rename scroll to _on_scroll after removing calls that use it and creating
 #   a scroll signal.
-
-# Create get_pks which returns the names of the table columns that are
-#   primary keys.
 
 # Implement destroy and destroy_all according to their documentation.
 class Browser(signals.Observer):
@@ -1025,7 +1021,7 @@ class BrowserRegistry:
         return new_browser
 
     @staticmethod
-    def destroy(name=None, idx=None):
+    def destroy_by_name(name):
         """Close the Table with the given name.
 
         If the Table to close happens to be the currently visible one,
@@ -1048,6 +1044,19 @@ class BrowserRegistry:
         Raises:
             KeyError: If no Table has the given name.
         """
+        BrowserRegistry,_browser_map[name].destroy()
+        BrowserRegistry._browser_map.pop(name)
+        BrowserRegistry._browser_indexes.pop(BrowserRegistry._cur_idx)
+
+    def destroy(self):
+        """Close the currently visible Table.
+
+        See destroy_by_name for information on which Table is
+        displayed next.
+        """
+        pass
+
+    def destroy_by_id(self, id):
         """Close the Table with the given id.
 
         See destroy_by_name for information on which Table is
@@ -1059,23 +1068,7 @@ class BrowserRegistry:
         Raises:
             KeyError: If no Table has the given id.
         """
-        """Close the currently visible Table.
-
-        See destroy_by_name for information on which Table is
-        displayed next.
-        """
-        if idx:
-            name = BrowserRegistry,_browser_indexes[idx].get_name()
-        elif name is None:
-            name = BrowserRegistry,_browser_indexes[\
-                    BrowserRegistry._cur_idx].get_name()
-        BrowserRegistry,_browser_map[name].destroy()
-        BrowserRegistry._browser_map.pop(name)
-        BrowserRegistry._browser_indexes.pop(BrowserRegistry._cur_idx)
-        if BrowserRegistry._cur_idx >= len(BrowserRegistry._browser_indexes):
-            BrowserRegistry._cur_idx = BrowserRegistry._cur_idx - 1
-        elif BrowserRegistry._cur_idx < 0:
-            BrowserRegistry._cur_idx = -1
+        pass
 
     @staticmethod
     def destroy_all():

@@ -74,4 +74,5 @@ class KeyMap:
         KeyMap.key_map.add_key('dd',commands.Write('del_entry %p', '', ''))
         KeyMap.key_map.add_key('/',commands.Write('filter ', '', ''))
         KeyMap.key_map.add_key('<Rsz>', cmd_map['resize'])
+        KeyMap.key_map.add_key('v', cmd_map['select'])
         return KeyMap.key_map

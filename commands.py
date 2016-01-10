@@ -439,7 +439,12 @@ class Edit(Command, signals.Subject):
         elif names[1] == '*':
             db_name = names[0]
             new_db = shared.DBRegistry.create(db_name)
-            new_db.connect()
+            try:
+                new_db.connect()
+            except FileNotFoundError as err:
+                stat_bar.prompt("'{db}' does not exist.".format(db=str(err)),
+                                enums.Prompt.ERROR)
+                return
             table_names = new_db.get_tables()
         for name in table_names:
             try:
@@ -669,17 +674,23 @@ class Resize(Command, signals.Subject):
                                                     curses.COLS - 1)
 
 
+# TODO: Don't add to the buffer if there is no database connection.
 class Select(Command, signals.Subject):
     def __init__(self, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)
         signals.Subject.__init__(self)
 
     def execute(self):
+        table = browser.BrowserRegistry.get_buffer().get()
         stat_bar = status_bar.StatusBarRegistry.get()
         args = stat_bar.get_cmd_args()
-        rowids = self._parse_args(args)
-        # TODO: This doesn't do anything.  For the intended effect, check
-        # if the current table's database is connected to.
+        if not args:
+            args = str(table.get_cur_row_pks())
+        try:
+            rowids = self._parse_args(args)
+        except ValueError as err:
+            stat_bar.prompt(str(err), enums.Prompt.ERROR)
+            return
         if not rowids:
             stat_bar.prompt('Nothing to select.', enums.Prompt.ERROR)
             return
@@ -723,7 +734,7 @@ class Select(Command, signals.Subject):
                 else:
                     raise ValueError('Not an integer: {}'.format(rowid))
             else:
-                raise ValueError('Invalid syntax.')
+                raise ValueError('Invalid syntax.' + arg_str)
         # Don't forget to get the last number.
         rowid = arg_str[beg_idx :]
         rowids.append(rowid)

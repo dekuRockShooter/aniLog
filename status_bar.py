@@ -136,6 +136,8 @@ class StatusBar(signals.Observer):
             else:
                 self.prompt("Command '{cmd_name}' does not exist.".format(
                     cmd_name=self._last_cmd_name), enums.Prompt.ERROR)
+        self._last_cmd_name = ''
+        self._last_cmd_args = ''
 
     def prompt(self, prompt_str, mode):
         """Show a message.

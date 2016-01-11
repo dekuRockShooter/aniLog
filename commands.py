@@ -72,6 +72,7 @@ class Scroll(Command, signals.Subject):
             return
         cur_browser = buffer.get()
         cur_browser.scroll(self._direction, self._quantifier)
+        self.emit(self._direction)
 
 
 class Update(Command, signals.Subject):
@@ -815,3 +816,13 @@ class LoadSession(Command, signals.Subject):
             stat_bar.prompt('Some tables could not be loaded.',
                             enums.Prompt.ERROR)
         session.close()
+
+
+class SendSignal(Command, signals.Subject):
+    def __init__(self, signal, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+        self._signal = signal
+
+    def execute(self):
+        self.emit(self._signal)

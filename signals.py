@@ -33,6 +33,8 @@ class Signal(enum.Enum):
     ENTRIES_SELECTED = 7
     BROWSER_OPENED = 8
     SHOW_BUFFERS = 9
+    DELETE_CHAR = 10
+    PRESS_ENTER = 11
 
 
 class Subject:

@@ -30,8 +30,30 @@ class CommandMap:
             'mksession': commands.SaveSession('', ''),
             'ldsession': commands.LoadSession('', ''),
             'paste': commands.Paste('', ''),
+            'scroll_up': commands.Scroll(enums.Scroll.UP, '', ''),
+            'scroll_down': commands.Scroll(enums.Scroll.DOWN, '', ''),
             }
         return CommandMap.cmd_map
+
+
+class CommandLineKeyMap:
+    key_map = None
+
+    @staticmethod
+    def get():
+        if CommandLineKeyMap.key_map:
+            return CommandLineKeyMap.key_map
+        cmd_map = CommandMap.get()
+        CommandLineKeyMap.key_map = keymap.KeyMap(keymap.AniLogKeyParser())
+        CommandLineKeyMap.key_map.add_key('<Ctrl-p>', cmd_map['scroll_up'])
+        CommandLineKeyMap.key_map.add_key('<Ctrl-n>', cmd_map['scroll_down'])
+        #CommandLineKeyMap.key_map.add_key('<Left>', cmd_map['scroll_left'])
+        #CommandLineKeyMap.key_map.add_key('<Right>', cmd_map['scroll_right'])
+        #CommandLineKeyMap.key_map.add_key('<S-Tab>', commands.Scroll(
+            #enums.Scroll.PAGE_UP, '', ''))
+        #CommandLineKeyMap.key_map.add_key('<Tab>', commands.Scroll(
+            #enums.Scroll.PAGE_DOWN, '', ''))
+        return CommandLineKeyMap.key_map
 
 
 class KeyMap:

@@ -68,6 +68,12 @@ class AniLogKeyParser:
         alt = '<Alt-'
         ctrl = '<Ctrl-'
         resize = '<Rsz>'
+        LEFT = '<Left>'
+        RIGHT = '<Right>'
+        TAB = '<Tab>'
+        STAB = '<S-Tab>'
+        BACKSPACE = '<BS>'
+        ENTER = '<Enter>'
         modifier = ''
         if key_str.startswith(ctrl_alt) and key_str.endswith('>'):
             modifier = ctrl_alt
@@ -77,6 +83,16 @@ class AniLogKeyParser:
             modifier = alt
         elif key_str == resize:
             return [KEY_RESIZE]
+        elif key_str == LEFT:
+            return [curses.KEY_LEFT]
+        elif key_str == RIGHT:
+            return [curses.KEY_RIGHT]
+        elif key_str == TAB:
+            return [ord('\t')]
+        elif key_str == STAB:
+            return [curses.KEY_BTAB]
+        elif key_str == BACKSPACE:
+            return [curses.KEY_BACKSPACE]
         else:
             return []
         # The '+ 2' refers to the closing '>' and the key being modified.

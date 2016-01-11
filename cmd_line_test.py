@@ -73,9 +73,21 @@ class CommandLine(signals.Observer):
                 self._last_char_idx = self._last_char_idx + 1
                 continue
             cmd.execute()
-        if history_len != len(self._history):
-            return self._history[0]
-        return ''
+        return self._close(history_len)
+
+    def destroy(self):
+        curses.nocbreak()
+        self._win.keypad(0)
+        curses.echo()
+        curses.endwin()
+
+    def _close(self, history_len):
+        if history_len == len(self._history):
+            return ''
+        cmd_line_history = open('cmd_line_history', 'a')
+        cmd_line_history.write(self._history[0] + '\n')
+        cmd_line_history.close()
+        return self._history[0]
 
     def _on_press_enter(self):
         line = self._win.instr(0, 0)
@@ -163,17 +175,6 @@ class CommandLine(signals.Observer):
             self._win.clear()
             self._win.addstr(0, 0, match)
             self._match_idx = (self._match_idx - 1) % len(self._match_gen)
-
-    def destroy(self):
-        curses.nocbreak()
-        self._win.keypad(0)
-        curses.echo()
-        curses.endwin()
-        cmd_line_history = open('cmd_line_history', 'w')
-        for line in self._history:
-            cmd_line_history.write(line)
-            cmd_line_history.write('\n')
-        cmd_line_history.close()
 
 
 cmd_line = CommandLine()

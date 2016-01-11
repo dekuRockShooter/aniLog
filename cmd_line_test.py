@@ -19,6 +19,7 @@ class CommandLine(signals.Observer):
         self._match_gen = None
         self._match_idx = 0
         self._last_char_idx = 0
+        self._is_open = False
         curses.initscr()
         curses.cbreak()
         curses.noecho()
@@ -36,6 +37,7 @@ class CommandLine(signals.Observer):
         cmd_map['press_enter'].register(self)
 
     def receive_signal(self, signal, args=None):
+        """Override signals.Subject."""
         if signal in (enums.Scroll.UP, enums.Scroll.DOWN,
                       enums.Scroll.LEFT, enums.Scroll.RIGHT,
                       enums.Scroll.PAGE_UP, enums.Scroll.PAGE_DOWN):
@@ -46,14 +48,16 @@ class CommandLine(signals.Observer):
             self._on_press_enter()
 
     def open(self, str=''):
+        self._is_open = True
         key = 0
-        while key != -1:
+        while self._is_open:
             key = self._win.getch()
             if key == 27: # Either alt or esc.
                 self._win.nodelay(1)
                 key = self._win.getch()
                 self._win.nodelay(0)
                 if key == -1: # esc
+                    self._is_open = False
                     continue
             row, col = self._win.getyx()
             try:
@@ -73,6 +77,7 @@ class CommandLine(signals.Observer):
         self._win.clear()
         self._history_idx = -1
         self._match_gen = None
+        self._is_open = False
 
     def _on_del_char(self):
         row, col = self._win.getyx()

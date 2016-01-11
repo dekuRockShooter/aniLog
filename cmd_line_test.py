@@ -16,7 +16,7 @@ class CommandLine(signals.Observer):
             self._cmd_line_history = open('cmd_line_history', 'r')
         self._history = []
         for line in self._cmd_line_history:
-            self._history.append(line.strip())
+            self._history.insert(0, line.strip())
         self._cmd_line_history.close()
         self._history_idx = -1
         self._match_gen = None

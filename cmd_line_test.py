@@ -28,57 +28,77 @@ class CommandLine(signals.Observer):
         self._win.keypad(1)
         cmd_map['scroll_up'].register(self)
         cmd_map['scroll_down'].register(self)
+        cmd_map['scroll_pgup'].register(self)
+        cmd_map['scroll_pgdown'].register(self)
+        cmd_map['scroll_left'].register(self)
+        cmd_map['scroll_right'].register(self)
+        cmd_map['del_char'].register(self)
+        cmd_map['press_enter'].register(self)
 
     def receive_signal(self, signal, args=None):
-        if signal in (enums.Scroll.UP, enums.Scroll.DOWN):
+        if signal in (enums.Scroll.UP, enums.Scroll.DOWN,
+                      enums.Scroll.LEFT, enums.Scroll.RIGHT,
+                      enums.Scroll.PAGE_UP, enums.Scroll.PAGE_DOWN):
             self._on_scroll(signal)
+        elif signal is signals.Signal.DELETE_CHAR:
+            self._on_del_char()
+        elif signal is signals.Signal.PRESS_ENTER:
+            self._on_press_enter()
 
     def open(self, str=''):
         key = 0
-        while key != ord('q'):
+        while key != -1:
             key = self._win.getch()
+            if key == 27: # Either alt or esc.
+                self._win.nodelay(1)
+                key = self._win.getch()
+                self._win.nodelay(0)
+                if key == -1: # esc
+                    continue
             row, col = self._win.getyx()
             try:
                 cmd = km.get_cmd(key)
-                cmd.execute()
-                continue
             except KeyError:
-                pass
-            if key in (curses.KEY_BACKSPACE, curses.KEY_DC):
-                self._win.delch(row, col - 1)
-                self._match_gen = None
-            elif key in (curses.KEY_ENTER, 10, 13):
-                line = self._win.instr(0, 0)
-                line = line.decode('utf-8').strip()
-                self._history.insert(0, line)
-                self._win.clear()
-                self._history_idx = -1
-                self._match_gen = None
-            else:
                 self._match_gen = None
                 self._win.insch(key)
                 self._win.move(row, col + 1)
+                continue
+            cmd.execute()
+
+    def _on_press_enter(self):
+        line = self._win.instr(0, 0)
+        line = line.decode('utf-8').strip()
+        self._history.insert(0, line)
+        self._win.clear()
+        self._history_idx = -1
+        self._match_gen = None
+
+    def _on_del_char(self):
+        row, col = self._win.getyx()
+        self._win.delch(row, col - 1)
+        self._match_gen = None
 
     def _on_scroll(self, direction):
-        self._match_gen = None
+        row, col = self._win.getyx()
         if direction is enums.Scroll.UP:
+            self._match_gen = None
             self._history_idx = self._history_idx + 1
             if self._history_idx >= len(self._history):
                 self._history_idx = len(self._history)
             self._win.clear()
             self._win.addstr(0, 0, self._history[self._history_idx])
-            self._win.refresh()
             return
         elif direction is enums.Scroll.DOWN:
+            self._match_gen = None
             self._history_idx = self._history_idx - 1
             if self._history_idx <= -1:
                 self._history_idx = -1
             self._win.clear()
             self._win.addstr(0, 0, self._history[self._history_idx])
             return
-        elif direction == enums.Scroll.LEFT:
+        elif direction is enums.Scroll.LEFT:
             self._win.move(row, col - 1)
-        elif direction == enums.Scroll.RIGHT:
+        elif direction is enums.Scroll.RIGHT:
             self._win.move(row, col + 1)
         elif direction == enums.Scroll.PAGE_UP:
             if self._match_gen is None:

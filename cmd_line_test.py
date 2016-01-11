@@ -6,11 +6,14 @@ import signals
 import enums
 
 
-
-
 class CommandLine(signals.Observer):
     def __init__(self):
-        self._cmd_line_history = open('cmd_line_history', 'r')
+        try:
+            self._cmd_line_history = open('cmd_line_history', 'r')
+        except FileNotFoundError:
+            self._cmd_line_history = open('cmd_line_history', 'w')
+            self._cmd_line_history.close()
+            self._cmd_line_history = open('cmd_line_history', 'r')
         self._history = []
         for line in self._cmd_line_history:
             self._history.append(line.strip())
@@ -49,6 +52,7 @@ class CommandLine(signals.Observer):
 
     def open(self, str=''):
         self._is_open = True
+        history_len = len(self._history)
         key = 0
         while self._is_open:
             key = self._win.getch()
@@ -69,12 +73,16 @@ class CommandLine(signals.Observer):
                 self._last_char_idx = self._last_char_idx + 1
                 continue
             cmd.execute()
+        if history_len != len(self._history):
+            return self._history[0]
+        return ''
 
     def _on_press_enter(self):
         line = self._win.instr(0, 0)
         line = line.decode('utf-8').strip()
-        self._history.insert(0, line)
-        self._win.clear()
+        if line:
+            self._history.insert(0, line)
+            self._win.clear()
         self._history_idx = -1
         self._match_gen = None
         self._is_open = False
@@ -90,6 +98,8 @@ class CommandLine(signals.Observer):
     def _on_scroll(self, direction):
         row, col = self._win.getyx()
         if direction is enums.Scroll.UP:
+            if not self._history:
+                return
             self._match_gen = None
             self._history_idx = self._history_idx + 1
             if self._history_idx >= len(self._history):
@@ -98,6 +108,8 @@ class CommandLine(signals.Observer):
             self._win.addstr(0, 0, self._history[self._history_idx])
             return
         elif direction is enums.Scroll.DOWN:
+            if not self._history:
+                return
             self._match_gen = None
             self._history_idx = self._history_idx - 1
             if self._history_idx <= -1:
@@ -165,5 +177,6 @@ class CommandLine(signals.Observer):
 
 
 cmd_line = CommandLine()
-cmd_line.open()
+s = cmd_line.open()
 cmd_line.destroy()
+print(s)

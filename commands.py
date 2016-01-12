@@ -68,11 +68,13 @@ class Scroll(Command, signals.Subject):
     def execute(self):
         #cur_browser = browser.BrowserRegistry.get_cur()
         buffer = browser.BrowserRegistry.get_buffer()
+        stat_bar = status_bar.StatusBarRegistry().get()
         #self.emit(signals.Signal.Scroll, self._direction)
         if buffer is None:
             return
         cur_browser = buffer.get()
         cur_browser.scroll(self._direction, self._quantifier)
+        stat_bar.redraw()
         self.emit(self._direction)
 
 
@@ -406,6 +408,7 @@ class SwitchTable(Command, signals.Subject):
             for id, name in iter(name_gen):
                 if pattern.search(name) is not None:
                     buffer.set_cur_from_name(name)
+                    self.emit(signals.Signal.BROWSER_SWITCHED)
                     return
         except KeyError:
             stat_bar.prompt('No matching table found.', enums.Prompt.ERROR)
@@ -472,6 +475,7 @@ class Edit(Command, signals.Subject):
                 return
         buffer = browser.BrowserRegistry.get_buffer()
         buffer.set_cur_from_name(table_name)
+        self.emit(signals.Signal.BROWSER_OPENED)
 
     def _parse(self, args):
             """Return a combination of db name, table name, and id.

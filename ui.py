@@ -81,7 +81,7 @@ class UI():
     def _create_widgets(self):
         """Create the basic widgets to display on startup."""
         status_bar.StatusBarRegistry.create(1,
-                settings.keys.CommandMap.get()).update()
+                settings.keys.CommandMap.get()).redraw()
 
     # TODO: This will most likely change when the config file is done.
     def _set_coords(self):

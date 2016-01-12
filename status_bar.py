@@ -43,63 +43,25 @@ class StatusBar(signals.Observer):
         self._cmd_map = cmd_map
 
         cmd_map = settings.keys.CommandMap.get()
-        cmd_map['next_browser'].register(self)
-        cmd_map['prev_browser'].register(self)
+        cmd_map['b'].register(self)
+        cmd_map['b#'].register(self)
+        cmd_map['bd'].register(self)
+        cmd_map['edit'].register(self)
         cmd_map['resize'].register(self)
 
-    def _reposition(self, scr_row, cols):
-        """Redraw the status bar after resizing the screen."""
-        if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:
-            return
-        else:
-            self._scr_right_col = curses.COLS
-            self._scr_row = positions.STATUS_BAR_COORDS[0]
-            self._win = curses.newwin(1, curses.COLS - 1, self._scr_row, 0)
-            self._text_pad = curses.textpad.Textbox(self._win, insert_mode=True)
-            self.update()
-
-    # TODO: this seems useless. update is a better fit for what this
-    # tries to do.  This string should be determined by the user and created
-    # by something else.  Then that object should call the prompt method
-    # to update the string.
-    def create(self):
-        """Will be removed."""
-        """Update the status bar string.
-
-        This method updates the string to be displayed in the status bar.
-        """
-        cur_browser = browser.BrowserRegistry.get_cur()
-        if cur_browser is None:
-            return
-        name = cur_browser.get_name()
-        idx = browser.BrowserRegistry.get_cur_idx() + 1
-        browser_count = browser.BrowserRegistry.get_count()
-        self._cur_str = '{}:{}/{}'.format(name, idx, browser_count)
-
-    def update(self):
-        """Will be removed."""
+    def redraw(self):
         """Redraw the status bar.
 
         This method redraws the status bar to show the updated default
         message.  For an explanation about the default message, see the
         prompt method.
         """
-        self.create()
+        self._update_str()
         self._clear(self._cur_str)
 
     def destroy(self):
         """Close the status bar."""
         curses.echo()
-
-    def _clear(self, new_str=''):
-        """Clear the status bar and add a new string.
-
-        Args:
-            new_str: The string to display in the status bar.
-        """
-        self._win.clear()
-        self._win.addstr(0, 0, new_str)
-        self._win.refresh()
 
     def prompt(self, prompt_str, mode):
         """Show a message.
@@ -122,23 +84,20 @@ class StatusBar(signals.Observer):
             ret_str = 0
             while not (ret_str == ord('y') or ret_str == ord('n')):
                 ret_str = self._win.getch()
-            self.update()
+            self.redraw()
         elif mode == enums.Prompt.ERROR:
             self._clear('ERROR: {}'.format(prompt_str))
         return ret_str
 
-    def scroll(self, direction, quantifier=1):
-        pass
+    def receive_signal(self, signal, args):
+        if signal is signals.Signal.SCREEN_RESIZED:
+            self._on_screen_resize()
+        elif signal in (signals.Signal.BROWSER_SWITCHED,
+                        signals.Signal.BROWSER_OPENED):
+            self._on_browser_switch()
 
-    def on_browser_switch(self):
-        """Switch to the new browser and display it.
-
-        Update the status bar string and show it.
-        """
-        self.update()
-        self._win.refresh()
-
-    def on_screen_resize(self):
+    def _reposition(self, scr_row, cols):
+        """Redraw the status bar after resizing the screen."""
         if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:
             return
         else:
@@ -146,13 +105,46 @@ class StatusBar(signals.Observer):
             self._scr_row = positions.STATUS_BAR_COORDS[0]
             self._win = curses.newwin(1, curses.COLS - 1, self._scr_row, 0)
             self._text_pad = curses.textpad.Textbox(self._win, insert_mode=True)
-            self.update()
+            self.redraw()
 
-    def receive_signal(self, signal, args):
-        if signal is signals.Signal.SCREEN_RESIZED:
-            self.on_screen_resize()
-        elif signal is signals.Signal.BROWSER_SWITCHED:
-            self.on_browser_switch()
+    # TODO: this seems useless. update is a better fit for what this
+    # tries to do.  This string should be determined by the user and created
+    # by something else.  Then that object should call the prompt method
+    # to update the string.
+    def _update_str(self):
+        """Update the status bar string."""
+        table = browser.BrowserRegistry.get_buffer().get()
+        name = table.get_name()
+        col_name = table.get_cur_col_name()
+        self._cur_str = '{}:{}'.format(name, col_name)
+
+    def _clear(self, new_str=''):
+        """Clear the status bar and add a new string.
+
+        Args:
+            new_str: The string to display in the status bar.
+        """
+        self._win.move(0, 0)
+        self._win.clrtoeol()
+        self._win.addstr(0, 0, new_str)
+        self._win.refresh()
+
+    def _on_browser_switch(self):
+        """Switch to the new browser and display it.
+
+        Update the status bar string and show it.
+        """
+        self.redraw()
+
+    def _on_screen_resize(self):
+        if positions.STATUS_BAR_POSITION == positions.SCREEN_TOP:
+            return
+        else:
+            self._scr_right_col = curses.COLS
+            self._scr_row = positions.STATUS_BAR_COORDS[0]
+            self._win = curses.newwin(1, curses.COLS - 1, self._scr_row, 0)
+            self._text_pad = curses.textpad.Textbox(self._win, insert_mode=True)
+            self.redraw()
 
 
 class StatusBarRegistry:

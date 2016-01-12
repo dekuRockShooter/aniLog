@@ -3,6 +3,7 @@ import keymap
 import enums
 import signals
 
+
 class CommandMap:
     cmd_map = {}
 
@@ -31,12 +32,6 @@ class CommandMap:
             'mksession': commands.SaveSession('', ''),
             'ldsession': commands.LoadSession('', ''),
             'paste': commands.Paste('', ''),
-            'scroll_up': commands.Scroll(enums.Scroll.UP, '', ''),
-            'scroll_down': commands.Scroll(enums.Scroll.DOWN, '', ''),
-            'scroll_pgup': commands.Scroll(enums.Scroll.PAGE_UP, '', ''),
-            'scroll_pgdown': commands.Scroll(enums.Scroll.PAGE_DOWN, '', ''),
-            'scroll_left': commands.Scroll(enums.Scroll.LEFT, '', ''),
-            'scroll_right': commands.Scroll(enums.Scroll.RIGHT, '', ''),
             'del_char': commands.SendSignal(signals.Signal.DELETE_CHAR,'',''),
             'press_enter': commands.SendSignal(signals.Signal.PRESS_ENTER,
                                                '', ''),
@@ -53,12 +48,18 @@ class CommandLineKeyMap:
             return CommandLineKeyMap.key_map
         cmd_map = CommandMap.get()
         CommandLineKeyMap.key_map = keymap.KeyMap(keymap.AniLogKeyParser())
-        CommandLineKeyMap.key_map.add_key('<Ctrl-p>', cmd_map['scroll_up'])
-        CommandLineKeyMap.key_map.add_key('<Ctrl-n>', cmd_map['scroll_down'])
-        CommandLineKeyMap.key_map.add_key('<Left>', cmd_map['scroll_left'])
-        CommandLineKeyMap.key_map.add_key('<Right>', cmd_map['scroll_right'])
-        CommandLineKeyMap.key_map.add_key('<S-Tab>', cmd_map['scroll_pgup'])
-        CommandLineKeyMap.key_map.add_key('<Tab>', cmd_map['scroll_pgdown'])
+        CommandLineKeyMap.key_map.add_key('<Ctrl-p>',
+                commands.CmdLineScroll(enums.Scroll.UP, '', ''))
+        CommandLineKeyMap.key_map.add_key('<Ctrl-n>',
+                commands.CmdLineScroll(enums.Scroll.DOWN, '', ''))
+        CommandLineKeyMap.key_map.add_key('<Left>',
+                commands.CmdLineScroll(enums.Scroll.LEFT, '', ''))
+        CommandLineKeyMap.key_map.add_key('<Right>',
+                commands.CmdLineScroll(enums.Scroll.RIGHT, '', ''))
+        CommandLineKeyMap.key_map.add_key('<S-Tab>',
+                commands.CmdLineScroll(enums.Scroll.PAGE_UP, '', ''))
+        CommandLineKeyMap.key_map.add_key('<Tab>',
+                commands.CmdLineScroll(enums.Scroll.PAGE_DOWN, '', ''))
         CommandLineKeyMap.key_map.add_key('<BS>',cmd_map['del_char'])
         # Whenever there is an <Enter>, there must be a <C-m> and <C-j>.
         # This is a law of curses.

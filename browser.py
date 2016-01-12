@@ -35,6 +35,8 @@ class Coordinates:
 #   a scroll signal.
 
 # Implement destroy and destroy_all according to their documentation.
+# Not all tables will have the same number of columns.  Determine this number
+# at runtime in the constructor.
 class Browser(signals.Observer):
     """A widget that allows interaction with a database table.
 
@@ -153,7 +155,7 @@ class Browser(signals.Observer):
         self._set_col_coords(col_widths)
 
         self._pad = None
-        self._select_buffer = []
+        self._select_buffer = set()
 
         cmd_map = settings.keys.CommandMap.get()
         cmd_map['update'].register(self)
@@ -416,7 +418,7 @@ class Browser(signals.Observer):
         """Return the primary key values of the current row.
 
         Returns:
-            A list of the primary key values of the current row.
+            The primary key value of the current row.
         """
         return self._primary_keys[self._cur_row]
 
@@ -537,37 +539,42 @@ class Browser(signals.Observer):
             elif self._col_coords[self._cur_col].beg < self._first_vis_col:
                 self._first_vis_col = self._col_coords[self._cur_col].beg
                 self._last_vis_col = self._first_vis_col + self._VIS_RNG[1]
-
-        # highlight next line and scroll down
-        select_buffer = shared.SelectBuffer.get()
         cur_cell_coords = self._col_coords[self._cur_col]
         if str(self._primary_keys[prev_row]) not in self._select_buffer:
-            self._pad.addstr(prev_row, prev_cell_coords.beg, prev_cell_val)
+            #self._pad.addstr(prev_row, prev_cell_coords.beg, prev_cell_val)
+            self._pad.chgat(prev_row, 0, -1, curses.A_NORMAL)
+        else:
+            self._pad.chgat(prev_row, 0, -1, curses.A_REVERSE)
         cur_cell_val = self._pad.instr(self._cur_row, cur_cell_coords.beg,
                 cur_cell_coords.sep - cur_cell_coords.beg)
         self._pad.addstr(self._cur_row, cur_cell_coords.beg, cur_cell_val,
-                curses.A_STANDOUT)
+                curses.A_REVERSE)
         self.redraw()
 
-    # TODO: The first loop removes highlights.  The second loop adds
-    # highlights.  Is there a way to combine this behavior?
-    # TODO: add self.redraw() at the end to show highlights immediately.
     def _on_select(self):
         """Redraw the table with all selections highlighted"""
+        # unselect is the old selection set without the new one.
+        # select is the new selection set without the old one.
+        # If unselect is not empty, then the rows in it were unselected.
+        # If select is not empty, then the rows in it were selected.
         select_buffer = shared.SelectBuffer.get()
-        for id_str in self._select_buffer:
-            id = int(id_str)
-            row_idx = bisect.bisect_left(self._primary_keys, id)
-            if row_idx != len(self._primary_keys) and\
-                    self._primary_keys[row_idx] == id:
-                self._pad.chgat(row_idx, 0, -1, curses.A_NORMAL)
-        for id_str in select_buffer:
-            id = int(id_str)
-            row_idx = bisect.bisect_left(self._primary_keys, id)
-            if row_idx != len(self._primary_keys) and\
-                    self._primary_keys[row_idx] == id:
-                self._pad.chgat(row_idx, 0, -1, curses.A_STANDOUT)
+        unselect = self._select_buffer.difference(select_buffer)
+        if unselect:
+            self._on_select_loop(unselect, curses.A_NORMAL)
+        else:
+            select = select_buffer.difference(self._select_buffer)
+            self._on_select_loop(select, curses.A_REVERSE)
         self._select_buffer = select_buffer
+
+    def _on_select_loop(self, selections, attr):
+        for pk_str in selections:
+            pk = int(pk_str)
+            row_idx = bisect.bisect_left(self._primary_keys, pk)
+            if row_idx != len(self._primary_keys) and\
+                    self._primary_keys[row_idx] == pk:
+                self._pad.chgat(row_idx, 0, -1, attr)
+        self.redraw()
+
 
 # TODO: make this private.
 class NullBrowser(Browser):

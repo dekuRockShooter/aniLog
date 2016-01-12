@@ -32,6 +32,7 @@ import signals
 import enums
 import browser
 import status_bar
+import cmd_line_test
 import settings.positions as positions
 import shared
 
@@ -82,7 +83,8 @@ class Update(Command, signals.Subject):
 
     def execute(self):
         stat_bar = status_bar.StatusBarRegistry.get()
-        args = stat_bar.get_cmd_args()
+        cmd_line = cmd_line_test.CommandLineRegistry.get()
+        args = cmd_line.get_cmd_args()
         new_val = ''
         if not args:
             stat_bar.prompt('Usage: edit primary_key_val new_cell_value',
@@ -139,7 +141,8 @@ class Clone(Command, signals.Subject):
             stat_bar.prompt('No connection to the database.',
                               enums.Prompt.ERROR)
             return
-        clone_table_name = stat_bar.get_cmd_args()
+        cmd_line = cmd_line_test.CommandLineRegistry.get()
+        clone_table_name = cmd_line.get_cmd_args()
         if not clone_table_name:
             return
         # New blank table with the same schema as the original table.
@@ -149,7 +152,7 @@ class Clone(Command, signals.Subject):
         schema = cur_db.execute(s)[0][0]
         s = schema.replace(table_name, clone_table_name, 1)
         cur_db.execute(s)
-        if stat_bar.get_cmd_name().endswith('!'):
+        if cmd_line.get_cmd_name().endswith('!'):
             s = 'insert into "{clone}" select * from "{original}"'.format(
                     clone=clone_table_name,
                     original=table_name)
@@ -193,7 +196,8 @@ class Delete(Command, signals.Subject):
 
     def execute(self):
         stat_bar = status_bar.StatusBarRegistry.get()
-        args = stat_bar.get_cmd_args()
+        cmd_line = cmd_line_test.CommandLineRegistry.get()
+        args = cmd_line.get_cmd_args()
         if not args:
             stat_bar.prompt('Usage: del_entry primary_key_val',
                             enums.Prompt.ERROR)
@@ -329,7 +333,8 @@ class RemoveTable(Command, signals.Subject):
     def execute(self):
         stat_bar = status_bar.StatusBarRegistry.get()
         buffer = browser.BrowserRegistry.get_buffer()
-        args = stat_bar.get_cmd_args()
+        cmd_line = cmd_line_test.CommandLineRegistry.get()
+        args = cmd_line.get_cmd_args()
         try:
             if not args:
                 buffer.remove_cur()
@@ -376,8 +381,9 @@ class SwitchTable(Command, signals.Subject):
     def execute(self):
         buffer = browser.BrowserRegistry.get_buffer()
         stat_bar = status_bar.StatusBarRegistry.get()
-        args = stat_bar.get_cmd_args()
-        if self._switch_to_prev(stat_bar, args):
+        cmd_line = cmd_line_test.CommandLineRegistry.get()
+        args = cmd_line.get_cmd_args()
+        if self._switch_to_prev(cmd_line, args):
             buffer.set_cur_to_prev()
             return
         if not args:
@@ -399,8 +405,8 @@ class SwitchTable(Command, signals.Subject):
         except KeyError:
             stat_bar.prompt('No matching table found.', enums.Prompt.ERROR)
 
-    def _switch_to_prev(self, stat_bar, args):
-        if not args and stat_bar.get_cmd_name().endswith('#'):
+    def _switch_to_prev(self, cmd_line, args):
+        if not args and cmd_line.get_cmd_name().endswith('#'):
             return True
         elif (len(args) == 1) and (args[0] == '#'):
             return True
@@ -418,9 +424,11 @@ class Edit(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
+        cmd_line = cmd_line_test.CommandLineRegistry.get()
         buffer = browser.BrowserRegistry.get_buffer()
         stat_bar = status_bar.StatusBarRegistry.get()
-        args = stat_bar.get_cmd_args()
+        #args = stat_bar.get_cmd_args()
+        args = cmd_line.get_cmd_args()
         name = ''
         names = []
         db_name = ''
@@ -515,7 +523,8 @@ class Filter(Command, signals.Subject):
 
     def execute(self):
         stat_bar = status_bar.StatusBarRegistry.get()
-        arg = stat_bar.get_cmd_args()
+        cmd_line = cmd_line_test.CommandLineRegistry.get()
+        args = cmd_line.get_cmd_args()
         #cur_browser = browser.BrowserRegistry.get_cur()
         cur_browser = browser.BrowserRegistry.get_buffer().get()
         col_name = cur_browser.get_cur_col_name()
@@ -530,7 +539,7 @@ class Filter(Command, signals.Subject):
         s = 'select * from "{table}" where "{col_name}" like \'%{val}%\''.\
                 format(table=table_name,
                        col_name=col_name,
-                       val=arg)
+                       val=args)
         rows = cur_db.execute(s)
         self.emit(signals.Signal.NEW_QUERY, rows)
 
@@ -564,7 +573,8 @@ class Sort(Command, signals.Subject):
         direction = self._direction
         if self._direction is None:
             stat_bar = status_bar.StatusBarRegistry.get()
-            args = stat_bar.get_cmd_args()
+            cmd_line = cmd_line_test.CommandLineRegistry.get()
+            args = cmd_line.get_cmd_args()
             try:
                 sep_idx = args.index(' ')
             except ValueError:
@@ -611,12 +621,13 @@ class Write(Command):
 
     def execute(self):
         stat_bar = status_bar.StatusBarRegistry.get()
+        cmd_line = cmd_line_test.CommandLineRegistry.get()
         try:
             cmd_str = self._expand(self._cmd_str)
         except ValueError as err:
             stat_bar.prompt(str(err), enums.Prompt.ERROR)
             return
-        stat_bar.edit(cmd_str)
+        cmd_line.open(cmd_str)
 
     def _expand(self, cmd_str):
         """Expand all the macros.
@@ -684,7 +695,8 @@ class Select(Command, signals.Subject):
     def execute(self):
         table = browser.BrowserRegistry.get_buffer().get()
         stat_bar = status_bar.StatusBarRegistry.get()
-        args = stat_bar.get_cmd_args()
+        cmd_line = cmd_line_test.CommandLineRegistry.get()
+        args = cmd_line.get_cmd_args()
         if not args:
             args = str(table.get_cur_row_pks())
         try:
@@ -759,7 +771,8 @@ class SaveSession(Command, signals.Subject):
     def execute(self):
         buffer = browser.BrowserRegistry.get_buffer()
         stat_bar = status_bar.StatusBarRegistry.get()
-        args = stat_bar.get_cmd_args()
+        cmd_line = cmd_line_test.CommandLineRegistry.get()
+        args = cmd_line.get_cmd_args()
         table_name = ''
         db_name = ''
         if not args:
@@ -789,7 +802,8 @@ class LoadSession(Command, signals.Subject):
         all_tables_loaded = True
         buffer = browser.BrowserRegistry.get_buffer()
         stat_bar = status_bar.StatusBarRegistry.get()
-        args = stat_bar.get_cmd_args()
+        cmd_line = cmd_line_test.CommandLineRegistry.get()
+        args = cmd_line.get_cmd_args()
         table_name = ''
         db_name = ''
         if not args:

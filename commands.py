@@ -694,20 +694,12 @@ class Select(Command, signals.Subject):
 
     def execute(self):
         table = browser.BrowserRegistry.get_buffer().get()
-        stat_bar = status_bar.StatusBarRegistry.get()
-        cmd_line = cmd_line_test.CommandLineRegistry.get()
-        args = cmd_line.get_cmd_args()
-        if not args:
-            args = str(table.get_cur_row_pks())
-        try:
-            rowids = self._parse_args(args)
-        except ValueError as err:
-            stat_bar.prompt(str(err), enums.Prompt.ERROR)
-            return
-        if not rowids:
-            stat_bar.prompt('Nothing to select.', enums.Prompt.ERROR)
-            return
-        shared.SelectBuffer.set(rowids)
+        selection_pk = str(table.get_cur_row_pks())
+        buffer = shared.SelectBuffer.get()
+        if selection_pk in buffer:
+            buffer.remove(selection_pk)
+        else:
+            buffer.append(selection_pk)
         self.emit(signals.Signal.ENTRIES_SELECTED)
 
     def _parse_args(self, arg_str):

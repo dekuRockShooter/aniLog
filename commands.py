@@ -195,39 +195,34 @@ class Delete(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
+        table = browser.BrowserRegistry.get_buffer().get()
         stat_bar = status_bar.StatusBarRegistry.get()
         cmd_line = cmd_line_test.CommandLineRegistry.get()
         args = cmd_line.get_cmd_args()
+        selections = shared.SelectBuffer.get()
         if not args:
-            stat_bar.prompt('Usage: del_entry primary_key_val',
-                            enums.Prompt.ERROR)
-            return
+            args = str(table.get_cur_cell())
         reply = stat_bar.prompt('Confirm deletion (y/n): ',
-                                      enums.Prompt.CONFIRM)
+                                enums.Prompt.CONFIRM)
         if reply == ord('n'):
             return
-        #cur_browser = browser.BrowserRegistry.get_cur()
-        cur_browser = browser.BrowserRegistry.get_buffer().get()
-        db_name = cur_browser.get_db_name()
-        table_name = cur_browser.get_table_name()
+        db_name = table.get_db_name()
+        table_name = table.get_table_name()
         try:
             cur_db = shared.DBRegistry.get_db(db_name)
         except KeyError:
             stat_bar.prompt('No connection to the database.',
                               enums.Prompt.ERROR)
             return
-        rowids = shared.SelectBuffer.get()
-        if not rowids:
-            rowids = [args]
-        for id in rowids:
-            s = 'delete from "{table}" where "{prim_key}"="{val}"'.format(
-                    table=table_name,
-                    prim_key=cur_browser.PRIMARY_KEY,
-                    val=id)
-            cur_db.execute(s)
+        if not selections:
+            selections.add(args)
+        s = 'delete from "{table}" where "{pk}" in ({vals})'.format(
+                table=table_name,
+                pk=table.PRIMARY_KEY,
+                vals=','.join(selections))
+        cur_db.execute(s)
         cur_db.commit()
         self.emit(signals.Signal.ENTRY_DELETED)
-        shared.SelectBuffer.set([])
 
 
 class Copy(Command):
@@ -697,9 +692,9 @@ class Select(Command, signals.Subject):
         selection_pk = str(table.get_cur_row_pks())
         buffer = shared.SelectBuffer.get()
         if selection_pk in buffer:
-            buffer.remove(selection_pk)
+            buffer.discard(selection_pk)
         else:
-            buffer.append(selection_pk)
+            buffer.add(selection_pk)
         self.emit(signals.Signal.ENTRIES_SELECTED)
 
     def _parse_args(self, arg_str):

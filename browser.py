@@ -360,11 +360,18 @@ class Browser(signals.Observer):
         This redraws the table without rows that were deleted since the last
         redraw.
         """
-        self._primary_keys.pop(self._cur_row)
-        self._pad.deleteln()
-        self._row_count = self._row_count - 1
+        selections = shared.SelectBuffer.get()
+        for pk_str in selections:
+            pk = int(pk_str)
+            row_idx = bisect.bisect_left(self._primary_keys, pk)
+            if row_idx != len(self._primary_keys) and\
+                    self._primary_keys[row_idx] == pk:
+                self._primary_keys.pop(row_idx)
+                self._pad.deleteln()
+                self._row_count = self._row_count - 1
         if self._cur_row >= self._row_count:
             self._cur_row = self._row_count - 1
+        selections.clear()
         self.redraw()
 
     # TODO: Resize horizontally.

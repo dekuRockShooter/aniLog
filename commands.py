@@ -200,12 +200,6 @@ class Delete(Command, signals.Subject):
         cmd_line = cmd_line_test.CommandLineRegistry.get()
         args = cmd_line.get_cmd_args()
         selections = shared.SelectBuffer.get()
-        if not args:
-            args = str(table.get_cur_cell())
-        reply = stat_bar.prompt('Confirm deletion (y/n): ',
-                                enums.Prompt.CONFIRM)
-        if reply == ord('n'):
-            return
         db_name = table.get_db_name()
         table_name = table.get_table_name()
         try:
@@ -214,7 +208,13 @@ class Delete(Command, signals.Subject):
             stat_bar.prompt('No connection to the database.',
                               enums.Prompt.ERROR)
             return
+        reply = stat_bar.prompt('Confirm deletion (y/n): ',
+                                enums.Prompt.CONFIRM)
+        if reply == ord('n'):
+            return
         if not selections:
+            if not args:
+                args = str(table.get_cur_row_pks())
             selections.add(args)
         s = 'delete from "{table}" where "{pk}" in ({vals})'.format(
                 table=table_name,

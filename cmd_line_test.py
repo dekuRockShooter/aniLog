@@ -47,6 +47,7 @@ class InputBar(signals.Observer):
         cmd_map['scroll_right'].register(self)
         cmd_map['del_char'].register(self)
         cmd_map['press_enter'].register(self)
+        cmd_map['resize'].register(self)
 
     def receive_signal(self, signal, args=None):
         """Override signals.Subject."""
@@ -58,6 +59,8 @@ class InputBar(signals.Observer):
             self._on_del_char()
         elif signal is signals.Signal.PRESS_ENTER:
             self._on_press_enter()
+        elif signal is signals.Signal.SCREEN_RESIZED:
+            self._on_screen_resize()
 
     def open(self, initial_str=''):
         """Open the command line.
@@ -126,6 +129,9 @@ class InputBar(signals.Observer):
         cmd_line_history.write(self._history[0] + '\n')
         cmd_line_history.close()
         return self._history[0]
+
+    def _on_screen_resize(self):
+        self._win = curses.newwin(1, curses.COLS, curses.LINES - 1, 0)
 
     def _on_press_enter(self):
         """Add the command line contents to the history array.

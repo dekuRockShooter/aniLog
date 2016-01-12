@@ -6,7 +6,6 @@ import enums
 import settings.keys
 import settings.positions as positions
 import signals
-import cmd_line_test
 
 
 # TODO: no hard coding
@@ -25,17 +24,13 @@ class StatusBar(signals.Observer):
     they should know.
 
     Methods:
-        edit: depracated.
         prompt: Write a message to the status bar.
         create: Setup the status bar.
         update: Redraw the status bar.
         destroy: Close the status bar.
-        get_cmd_name: Return the name of the last command entered.
-        get_cmd_args: Return the arguements of the last command entered.
     """
     # TODO: this should be __init__(self).
     def __init__(self, position, cmd_map):
-        self._cmd_line = cmd_line_test.CommandLine()
         curses.initscr()
         curses.noecho()
         self._scr_right_col = curses.COLS
@@ -95,7 +90,6 @@ class StatusBar(signals.Observer):
     def destroy(self):
         """Close the status bar."""
         curses.echo()
-        self._cmd_line.destroy()
 
     def _clear(self, new_str=''):
         """Clear the status bar and add a new string.
@@ -106,43 +100,6 @@ class StatusBar(signals.Observer):
         self._win.clear()
         self._win.addstr(0, 0, new_str)
         self._win.refresh()
-
-    def edit(self, initial_str=''):
-        """Will be removed."""
-        """Open the status bar for editing.
-
-        The status bar takes keyboard focus until the user is done
-        editing.  The purpose of this method is to allow the user to
-        enter a command, which is executed immediately.
-
-        Args:
-            initial_str: The string to initialize the status bar with.
-                The user is able to edit it.
-        """
-        self._clear(initial_str)
-        curses.curs_set(1)
-        #input = self._text_pad.edit().strip()
-        input = self._cmd_line.open()
-        curses.curs_set(0)
-        try:
-            arg_idx= input.index(' ')
-            self._last_cmd_name = input[: arg_idx]
-            self._last_cmd_args = input[arg_idx + 1:]
-        except ValueError:
-            self._last_cmd_name = input
-            self._last_cmd_args = ''
-        # TODO: get the command associated with input[0]
-        # TODO: get flags
-        try:
-            self._cmd_map[self._last_cmd_name].execute()
-        except KeyError:
-            if not self._last_cmd_name:
-                self.update()
-            else:
-                self.prompt("Command '{cmd_name}' does not exist.".format(
-                    cmd_name=self._last_cmd_name), enums.Prompt.ERROR)
-        self._last_cmd_name = ''
-        self._last_cmd_args = ''
 
     def prompt(self, prompt_str, mode):
         """Show a message.
@@ -169,16 +126,6 @@ class StatusBar(signals.Observer):
         elif mode == enums.Prompt.ERROR:
             self._clear('ERROR: {}'.format(prompt_str))
         return ret_str
-
-    def get_cmd_name(self):
-        """Will be removed."""
-        """Return the name of the last command entered."""
-        return self._last_cmd_name
-
-    def get_cmd_args(self):
-        """Will be removed."""
-        """Return the arguments of the last command entered."""
-        return self._last_cmd_args
 
     def scroll(self, direction, quantifier=1):
         pass

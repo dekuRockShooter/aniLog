@@ -329,8 +329,13 @@ class Browser(signals.Observer):
         This redraws the table with the rows that were inserted since the
         last redraw.
         """
-        row = [self._DB.get_newest(self._TABLE_NAME)]
-        self._populate_browser(row)
+        s = 'select * from "{table}" where "{pk}" > {val}'.format(
+                table=self._TABLE_NAME,
+                pk=self.PRIMARY_KEY,
+                val=self._primary_keys[self._cur_row])
+        rows = self._DB.execute(s)
+        #row = [self._DB.get_newest(self._TABLE_NAME)]
+        self._populate_browser(rows)
         self.scroll(enums.Scroll.END)
 
     def _on_entry_updated(self):

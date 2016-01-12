@@ -238,13 +238,13 @@ class Copy(Command):
             stat_bar.prompt('No connection to the database.',
                               enums.Prompt.ERROR)
             return
-        rowids = shared.SelectBuffer.get()
+        selections = shared.SelectBuffer.get()
         entries = []
-        if not rowids:
-            rowids = [str(cur_browser.get_cur_row_pks())]
-        s = 'select * from "{table}" where rowid in ({selected_ids})'.format(
+        if not selections:
+            selections.add(str(cur_browser.get_cur_row_pks()))
+        s = 'select * from "{table}" where rowid in ({vals})'.format(
                 table=table_name,
-                selected_ids=','.join(rowids))
+                vals=','.join(selections))
         rows = cur_db.execute(s)
         for row_tuple in rows:
             # Convert to a list to be able to format entries.

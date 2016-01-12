@@ -39,12 +39,12 @@ class InputBar(signals.Observer):
         self._win.keypad(1)
         self._key_map = settings.keys.CommandLineKeyMap.get()
         cmd_map = settings.keys.CommandMap.get()
-        cmd_map['scroll_up'].register(self)
-        cmd_map['scroll_down'].register(self)
-        cmd_map['scroll_pgup'].register(self)
-        cmd_map['scroll_pgdown'].register(self)
-        cmd_map['scroll_left'].register(self)
-        cmd_map['scroll_right'].register(self)
+        #cmd_map['scroll_up'].register(self)
+        #cmd_map['scroll_down'].register(self)
+        #cmd_map['scroll_pgup'].register(self)
+        #cmd_map['scroll_pgdown'].register(self)
+        #cmd_map['scroll_left'].register(self)
+        #cmd_map['scroll_right'].register(self)
         cmd_map['del_char'].register(self)
         cmd_map['press_enter'].register(self)
         cmd_map['resize'].register(self)
@@ -269,6 +269,9 @@ class CommandLine:
 
     def destroy(self):
         self._input_bar.destroy()
+
+    def receive_signal(self, signal):
+        self._input_bar.receive_signal(signal)
 
 
 class CommandLineRegistry:

@@ -76,6 +76,16 @@ class Scroll(Command, signals.Subject):
         self.emit(self._direction)
 
 
+class CmdLineScroll(Command, signals.Subject):
+    def __init__(self, direction, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+        self._direction = direction
+
+    def execute(self):
+        cmd_line_test.CommandLineRegistry.get().receive_signal(self._direction)
+
+
 class Update(Command, signals.Subject):
     def __init__(self, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)

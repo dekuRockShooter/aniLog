@@ -102,6 +102,8 @@ class InputBar(signals.Observer):
                 continue
             cmd.execute()
         curses.curs_set(0)
+        self._win.clear()
+        self._win.refresh()
         return self._close(history_len)
 
     def destroy(self):

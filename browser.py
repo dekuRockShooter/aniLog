@@ -366,14 +366,16 @@ class Browser(signals.Observer):
         redraw.
         """
         selections = shared.SelectBuffer.get()
-        for pk_str in selections:
+        selections_gen = (k for k in reversed(sorted(selections)))
+        for pk_str in iter(selections_gen):
             pk = int(pk_str)
             row_idx = bisect.bisect_left(self._primary_keys, pk)
             if row_idx != len(self._primary_keys) and\
                     self._primary_keys[row_idx] == pk:
                 self._primary_keys.pop(row_idx)
-                self._pad.deleteln()
                 self._row_count = self._row_count - 1
+                self._pad.move(row_idx, 0)
+                self._pad.deleteln()
         if self._cur_row >= self._row_count:
             self._cur_row = self._row_count - 1
         selections.clear()

@@ -83,7 +83,8 @@ class InputBar(signals.Observer):
         history_len = len(self._history)
         key = 0
         curses.curs_set(1)
-        self._win.clear()
+        self._win.move(0, 0)
+        self._win.clrtoeol()
         self._win.addstr(0, 0, initial_str)
         while self._is_open:
             key = self._win.getch()
@@ -105,7 +106,8 @@ class InputBar(signals.Observer):
                 continue
             cmd.execute()
         curses.curs_set(0)
-        self._win.clear()
+        self._win.move(0, 0)
+        self._win.clrtoeol()
         self._win.refresh()
         self._last_char_idx = 0
         return self._close(history_len)
@@ -149,7 +151,8 @@ class InputBar(signals.Observer):
         line = line.decode('utf-8').strip()
         if line:
             self._history.insert(0, line)
-            self._win.clear()
+            self._win.move(0, 0)
+            self._win.clrtoeol()
         self._history_idx = -1
         self._match_gen = None
         self._is_open = False
@@ -216,7 +219,8 @@ class InputBar(signals.Observer):
         self._match_gen = None
         check_bounds()
         hist_str = self._history[self._history_idx]
-        self._win.clear()
+        self._win.move(0, 0)
+        self._win.clrtoeol()
         self._win.addstr(0, 0, hist_str)
         self._last_char_idx = len(hist_str)
 
@@ -250,7 +254,8 @@ class InputBar(signals.Observer):
                 match = str(next(self._cmd_arg_iter))
             except StopIteration:
                 match = cmd_args
-            self._win.clear()
+            self._win.move(0, 0)
+            self._win.clrtoeol()
             self._win.addstr(0, 0, cmd_name + ' ' + match)
             self._last_char_idx = len(cmd_name) + len(match)
             self._match_gen = None
@@ -271,7 +276,8 @@ class InputBar(signals.Observer):
                 return
         check_bounds()
         match = self._match_gen[self._match_idx]
-        self._win.clear()
+        self._win.move(0, 0)
+        self._win.clrtoeol()
         self._win.addstr(0, 0, match)
         self._match_idx = (self._match_idx + step) % len(self._match_gen)
         self._last_char_idx = len(match)

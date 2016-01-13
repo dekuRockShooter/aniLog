@@ -57,6 +57,24 @@ class Command:
         raise NotImplementedError('This method must be overriden.')
         pass
 
+    def tab(self, args):
+        """Return a generator of tab completion items.
+
+        This method defines the sequence to iterate over when Tab is
+        pressed in the command line.  Subclasses should override this
+        if they desire tab completion.  Otherwise, an empty generator
+        is returned.
+
+        Args:
+            args (str): The arguments in the command line at the time of
+                calling this method.
+
+        Returns:
+            A generator object.  The default implementaion returns a
+                generator that generates nothing.
+        """
+        return lambda : (x for x in range(0))
+
 
 # TODO: emit a signal and remove the Browser reference.
 class Scroll(Command, signals.Subject):
@@ -413,6 +431,19 @@ class SwitchTable(Command, signals.Subject):
         except KeyError:
             stat_bar.prompt('No matching table found.', enums.Prompt.ERROR)
 
+    def tab(self, args):
+        buffer = browser.BrowserRegistry.get_buffer()
+        pattern = re.compile(args)
+        name_iter = iter(buffer.name_generator())
+        def f():
+            #buffer = browser.BrowserRegistry.get_buffer()
+            #pattern = re.compile(args)
+            name_iter = iter(buffer.name_generator())
+            name_gen = (name for id, name in name_iter if\
+                        pattern.search(name) is not None)
+            return name_gen
+        return f
+
     def _switch_to_prev(self, cmd_line, args):
         if not args and cmd_line.get_cmd_name().endswith('#'):
             return True
@@ -435,7 +466,6 @@ class Edit(Command, signals.Subject):
         cmd_line = cmd_line_test.CommandLineRegistry.get()
         buffer = browser.BrowserRegistry.get_buffer()
         stat_bar = status_bar.StatusBarRegistry.get()
-        #args = stat_bar.get_cmd_args()
         args = cmd_line.get_cmd_args()
         name = ''
         names = []

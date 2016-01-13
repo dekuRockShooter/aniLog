@@ -184,7 +184,8 @@ class InputBar(signals.Observer):
                 return
             self._win.move(row, col - 1)
         elif direction is enums.Scroll.RIGHT:
-            if col == self._last_char_idx:
+            if col >= self._last_char_idx:
+                self._win.move(row, self._last_char_idx)
                 return
             self._win.move(row, col + 1)
         elif direction is enums.Scroll.PAGE_UP:
@@ -210,8 +211,10 @@ class InputBar(signals.Observer):
             return
         self._match_gen = None
         check_bounds()
+        hist_str = self._history[self._history_idx]
         self._win.clear()
-        self._win.addstr(0, 0, self._history[self._history_idx])
+        self._win.addstr(0, 0, hist_str)
+        self._last_char_idx = len(hist_str)
 
     def _on_pgup_pgdwn(self, direction, check_bounds):
         """Run code common to PAGE_UP and PAGE_DOWN."""
@@ -239,6 +242,7 @@ class InputBar(signals.Observer):
         self._win.clear()
         self._win.addstr(0, 0, match)
         self._match_idx = (self._match_idx + step) % len(self._match_gen)
+        self._last_char_idx = len(match)
 
 
 class CommandLine:

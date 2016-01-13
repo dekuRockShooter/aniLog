@@ -144,7 +144,7 @@ class SelectBuffer:
         set: Change the contents of the select buffer.
         get: Return the contents of the select buffer.
     """
-    _select_buffer = []
+    _select_buffer = set()
 
     @staticmethod
     def set(rows):

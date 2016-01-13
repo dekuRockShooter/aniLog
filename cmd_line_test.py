@@ -32,6 +32,9 @@ class InputBar(signals.Observer):
         self._match_idx = 0
         self._last_char_idx = 0
         self._is_open = False
+        def f():
+            return (x for x in range(0))
+        self._cmd_arg_iter = CommandArgIter('.', '.', f)
         curses.initscr()
         curses.cbreak()
         curses.noecho()
@@ -104,6 +107,7 @@ class InputBar(signals.Observer):
         curses.curs_set(0)
         self._win.clear()
         self._win.refresh()
+        self._last_char_idx = 0
         return self._close(history_len)
 
     def destroy(self):
@@ -224,6 +228,34 @@ class InputBar(signals.Observer):
             step = -1
         else:
             return
+        # Tab through the Command's arguments.
+        cmd_line_contents = self._win.instr(0, 0, self._last_char_idx)
+        cmd_line_contents = cmd_line_contents.decode('utf-8')
+        arg_idx = cmd_line_contents.find(' ')
+        if arg_idx > 0:
+            cmd_map = settings.keys.CommandMap.get()
+            cmd_name = cmd_line_contents[: arg_idx]
+            cmd_args = cmd_line_contents[arg_idx + 1:].lstrip()
+            if cmd_name == self._cmd_arg_iter.cmd_name and\
+                cmd_args.find(self._cmd_arg_iter.base_arg) != -1:
+                    pass
+            else:
+                try:
+                    completion_list = cmd_map[cmd_name].tab(cmd_args)
+                    self._cmd_arg_iter = CommandArgIter(cmd_name, cmd_args,
+                                                        completion_list)
+                except KeyError:
+                    return
+            try:
+                match = str(next(self._cmd_arg_iter))
+            except StopIteration:
+                match = cmd_args
+            self._win.clear()
+            self._win.addstr(0, 0, cmd_name + ' ' + match)
+            self._last_char_idx = len(cmd_name) + len(match)
+            self._match_gen = None
+            return
+        # Tab through Commands.
         if self._match_gen is None:
             cmd_map = settings.keys.CommandMap.get()
             self._match_idx = 0
@@ -245,13 +277,59 @@ class InputBar(signals.Observer):
         self._last_char_idx = len(match)
 
 
+class CommandArgIter:
+    """Iterate through a Command's tab completion list.
+
+    Attributes:
+        cmd_name: The name of the Command.
+        base_arg: The string that was in the command line when tab
+            completion was requested.  This string is given to a
+            Command object so that it can decide what the tab
+            completion list consists of.
+    """
+    """
+    Private Attributes:
+        completion_gen: A generator that generates the items in the
+            completion list.
+        iter: The iterator over the completion list.
+    """
+    def __init__(self, cmd_name, base_arg, completion_gen):
+        self.cmd_name = cmd_name
+        self.base_arg = base_arg
+        self._completion_gen = completion_gen
+        self._iter = iter(self._completion_gen())
+
+    def __next__(self):
+        try:
+            return next(self._iter)
+        except StopIteration:
+            self._iter = iter(self._completion_gen())
+        except RuntimeError:
+            self._iter = iter(self._completion_gen())
+        return next(self._iter)
+
+
 class CommandLine:
+    """Run commands entered in the InputBar.
+
+    Methods:
+        open: Open the command line for editing.
+        get_cmd_args: Return the arguments for the command.
+        get_cmd_name: Return the name of the command.
+        destroy: See InputBar's destroy method.
+        receive_signal: See InputBar's receive_signal method.
+    """
     def __init__(self):
         self._input_bar = InputBar()
         self._cmd_args = ''
         self._cmd_name = ''
 
     def open(self, initial_str):
+        """Open the command line and execute a command.
+
+        Args:
+            initial_str: The string to initialize the command line with.
+        """
         input_str = self._input_bar.open(initial_str)
         if not input_str:
             return
@@ -269,21 +347,27 @@ class CommandLine:
             cmd_map[self._cmd_name].execute()
         except KeyError:
             pass
-            #self.prompt("Command '{cmd_name}' does not exist.".format(
-                #cmd_name=self._last_cmd_name), enums.Prompt.ERROR)
         self._cmd_name = ''
         self._cmd_args = ''
 
     def get_cmd_args(self):
+        """Return the arguments of the command.
+
+        Returns:
+            A string of the contents after the command's name.
+        """
         return self._cmd_args
 
     def get_cmd_name(self):
+        """Return the name of the command."""
         return self._cmd_name
 
     def destroy(self):
+        """Functionally equivalent to InputBar.destroy."""
         self._input_bar.destroy()
 
     def receive_signal(self, signal):
+        """Functionally equivalent to InputBar.receive_signal."""
         self._input_bar.receive_signal(signal)
 
 

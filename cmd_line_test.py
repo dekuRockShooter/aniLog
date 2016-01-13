@@ -159,20 +159,6 @@ class InputBar(signals.Observer):
         self._match_gen = None
         self._last_char_idx = self._last_char_idx - 1
 
-    def _on_up_down(self, direction, check_bounds):
-        if not self._history:
-            return
-        self._match_gen = None
-        if direction is enums.Scroll.UP:
-            self._history_idx = self._history_idx + 1
-        elif direction is enums.Scroll.DOWN:
-            self._history_idx = self._history_idx - 1
-        else:
-            return
-        check_bounds()
-        self._win.clear()
-        self._win.addstr(0, 0, self._history[self._history_idx])
-
     def _on_scroll(self, direction):
         # Scrolling up or down moves backward or forward, respectively,
         # in the history.
@@ -202,43 +188,57 @@ class InputBar(signals.Observer):
                 return
             self._win.move(row, col + 1)
         elif direction == enums.Scroll.PAGE_UP:
-            if self._match_gen is None:
-                cmd_map = settings.keys.CommandMap.get()
-                self._match_idx = 0
-                line = self._win.instr(0, 0)
-                line = line.decode('utf-8').strip()
-                pattern = re.compile('^{}'.format(line))
-                # A generator would be preferable, but there is no reasonable
-                # way to go back, which is needed for Shift+Tab.
-                self._match_gen = [s for s in cmd_map.keys() if\
-                             pattern.search(s) is not None]
-                if not self._match_gen:
-                    self._match_gen = None
-                    return
-            if self._match_idx >= len(self._match_gen):
-                self._match_idx = 0
-            match = self._match_gen[self._match_idx]
-            self._win.clear()
-            self._win.addstr(0, 0, match)
-            self._match_idx = (self._match_idx + 1) % len(self._match_gen)
+            def f():
+                if self._match_idx >= len(self._match_gen):
+                    self._match_idx = 0
+            self._on_pgup_pgdwn(direction, f)
         elif direction == enums.Scroll.PAGE_DOWN:
-            if self._match_gen is None:
-                cmd_map = settings.keys.CommandMap.get()
-                self._match_idx = 0
-                line = self._win.instr(0, 0)
-                line = line.decode('utf-8').strip()
-                pattern = re.compile('^{}'.format(line))
-                self._match_gen = [s for s in cmd_map.keys() if\
-                             pattern.search(s) is not None]
-                if not self._match_gen:
-                    self._match_gen = None
-                    return
-            if self._match_idx < 0:
-                self._match_idx = len(self._match_gen) - 1
-            match = self._match_gen[self._match_idx]
-            self._win.clear()
-            self._win.addstr(0, 0, match)
-            self._match_idx = (self._match_idx - 1) % len(self._match_gen)
+            def f():
+                if self._match_idx < 0:
+                    self._match_idx = len(self._match_gen) - 1
+            self._on_pgup_pgdwn(direction, f)
+
+    def _on_up_down(self, direction, check_bounds):
+        """Run code common to UP and DOWN."""
+        if not self._history:
+            return
+        if direction is enums.Scroll.UP:
+            self._history_idx = self._history_idx + 1
+        elif direction is enums.Scroll.DOWN:
+            self._history_idx = self._history_idx - 1
+        else:
+            return
+        self._match_gen = None
+        check_bounds()
+        self._win.clear()
+        self._win.addstr(0, 0, self._history[self._history_idx])
+
+    def _on_pgup_pgdwn(self, direction, check_bounds):
+        """Run code common to PAGE_UP and PAGE_DOWN."""
+        if direction is enums.Scroll.PAGE_UP:
+            step = 1
+        elif direction is enums.Scroll.PAGE_DOWN:
+            step = -1
+        else:
+            return
+        if self._match_gen is None:
+            cmd_map = settings.keys.CommandMap.get()
+            self._match_idx = 0
+            line = self._win.instr(0, 0)
+            line = line.decode('utf-8').strip()
+            pattern = re.compile('^{}'.format(line))
+            # A generator is preferable, but those can't be traversed
+            # backward, so unfortunately, we need a list.
+            self._match_gen = [s for s in cmd_map.keys() if\
+                         pattern.search(s) is not None]
+            if not self._match_gen:
+                self._match_gen = None
+                return
+        check_bounds()
+        match = self._match_gen[self._match_idx]
+        self._win.clear()
+        self._win.addstr(0, 0, match)
+        self._match_idx = (self._match_idx + step) % len(self._match_gen)
 
 
 class CommandLine:

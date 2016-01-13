@@ -34,7 +34,7 @@ class InputBar(signals.Observer):
         self._is_open = False
         def f():
             return (x for x in range(0))
-        self._cmd_arg_iter = CommandArgIter('.', '.', f)
+        self._cmd_arg_iter = _CommandArgIter('.', '.', f)
         curses.initscr()
         curses.cbreak()
         curses.noecho()
@@ -246,7 +246,7 @@ class InputBar(signals.Observer):
             else:
                 try:
                     completion_list = cmd_map[cmd_name].tab(cmd_args)
-                    self._cmd_arg_iter = CommandArgIter(cmd_name, cmd_args,
+                    self._cmd_arg_iter = _CommandArgIter(cmd_name, cmd_args,
                                                         completion_list)
                 except KeyError:
                     return
@@ -283,7 +283,7 @@ class InputBar(signals.Observer):
         self._last_char_idx = len(match)
 
 
-class CommandArgIter:
+class _CommandArgIter:
     """Iterate through a Command's tab completion list.
 
     Attributes:

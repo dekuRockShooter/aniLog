@@ -159,6 +159,20 @@ class InputBar(signals.Observer):
         self._match_gen = None
         self._last_char_idx = self._last_char_idx - 1
 
+    def _on_up_down(self, direction, check_bounds):
+        if not self._history:
+            return
+        self._match_gen = None
+        if direction is enums.Scroll.UP:
+            self._history_idx = self._history_idx + 1
+        elif direction is enums.Scroll.DOWN:
+            self._history_idx = self._history_idx - 1
+        else:
+            return
+        check_bounds()
+        self._win.clear()
+        self._win.addstr(0, 0, self._history[self._history_idx])
+
     def _on_scroll(self, direction):
         # Scrolling up or down moves backward or forward, respectively,
         # in the history.
@@ -168,24 +182,16 @@ class InputBar(signals.Observer):
         # right, respectively.
         row, col = self._win.getyx()
         if direction is enums.Scroll.UP:
-            if not self._history:
-                return
-            self._match_gen = None
-            self._history_idx = self._history_idx + 1
-            if self._history_idx >= len(self._history):
-                self._history_idx = len(self._history) - 1
-            self._win.clear()
-            self._win.addstr(0, 0, self._history[self._history_idx])
+            def f():
+                if self._history_idx >= len(self._history):
+                    self._history_idx = len(self._history) - 1
+            self._on_up_down(direction, f)
             return
         elif direction is enums.Scroll.DOWN:
-            if not self._history:
-                return
-            self._match_gen = None
-            self._history_idx = self._history_idx - 1
-            if self._history_idx <= -1:
-                self._history_idx = 0
-            self._win.clear()
-            self._win.addstr(0, 0, self._history[self._history_idx])
+            def f():
+                if self._history_idx <= -1:
+                    self._history_idx = 0
+            self._on_up_down(direction, f)
             return
         elif direction is enums.Scroll.LEFT:
             if col == 0:

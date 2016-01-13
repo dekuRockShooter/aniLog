@@ -134,6 +134,7 @@ class InputBar(signals.Observer):
 
     def _on_screen_resize(self):
         self._win = curses.newwin(1, curses.COLS, curses.LINES - 1, 0)
+        self._win.keypad(1)
 
     def _on_press_enter(self):
         """Add the command line contents to the history array.

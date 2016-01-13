@@ -329,13 +329,17 @@ class Browser(signals.Observer):
         This redraws the table with the rows that were inserted since the
         last redraw.
         """
+        if self._primary_keys:
+            val = self._primary_keys[self._cur_row]
+        else:
+            val = -1
         s = 'select * from "{table}" where "{pk}" > {val}'.format(
                 table=self._TABLE_NAME,
                 pk=self.PRIMARY_KEY,
-                val=self._primary_keys[self._cur_row])
+                val=val)
         rows = self._DB.execute(s)
-        #row = [self._DB.get_newest(self._TABLE_NAME)]
         self._populate_browser(rows)
+        self._cur_row = self._row_count - 1
         self.scroll(enums.Scroll.END)
 
     def _on_entry_updated(self):
@@ -515,7 +519,7 @@ class Browser(signals.Observer):
 
     def scroll(self, direction, quantifier=1):
         """Scroll in the given direction."""
-        if self._row_count == 0:
+        if self._row_count == 0 or self._cur_row < 0:
             return
         prev_cell_coords = self._col_coords[self._cur_col]
         prev_cell_val = self._pad.instr(self._cur_row, prev_cell_coords.beg,

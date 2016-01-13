@@ -187,12 +187,12 @@ class InputBar(signals.Observer):
             if col == self._last_char_idx:
                 return
             self._win.move(row, col + 1)
-        elif direction == enums.Scroll.PAGE_UP:
+        elif direction is enums.Scroll.PAGE_UP:
             def f():
                 if self._match_idx >= len(self._match_gen):
                     self._match_idx = 0
             self._on_pgup_pgdwn(direction, f)
-        elif direction == enums.Scroll.PAGE_DOWN:
+        elif direction is enums.Scroll.PAGE_DOWN:
             def f():
                 if self._match_idx < 0:
                     self._match_idx = len(self._match_gen) - 1

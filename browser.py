@@ -139,10 +139,10 @@ class Browser(signals.Observer):
         self._row_count = 0
         self._SCR_COORDS = [positions.BROWSER_UPPER_LEFT_COORDS,
                             positions.BROWSER_BOTTOM_RIGHT_COORDS]
-        self._row_capacity = 1 # The last row in the pad.
+        self._row_capacity = 1
         self._BEG_ROW = 0
-        self._last_vis_row = 0 # The last row in the pad that is visible.
-        self._first_vis_row = self._VIS_RNG[0] # TODO: this should be bot_row
+        self._first_vis_row = 0
+        self._last_vis_row = self._VIS_RNG[0]
 
         self._col_capacity = int(sum(col_widths) + 2*len(col_widths))
         self._BEG_COL = 0
@@ -397,7 +397,7 @@ class Browser(signals.Observer):
                              positions.BROWSER_UPPER_LEFT_COORDS[1]]
         self._SCR_COORDS = [positions.BROWSER_UPPER_LEFT_COORDS,
                             positions.BROWSER_BOTTOM_RIGHT_COORDS]
-        self._first_vis_row = self._VIS_RNG[0] # TODO: this should be bot_row
+        self._last_vis_row = self._VIS_RNG[0]
         self._last_vis_col = self._VIS_RNG[1]
         self.redraw()
 

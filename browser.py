@@ -330,7 +330,7 @@ class Browser(signals.Observer):
         last redraw.
         """
         if self._primary_keys:
-            val = self._primary_keys[self._cur_row]
+            val = self._primary_keys[self._row_count - 1]
         else:
             val = -1
         s = 'select * from "{table}" where "{pk}" > {val}'.format(

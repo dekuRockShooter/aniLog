@@ -8,7 +8,7 @@ import settings.keys
 import signals
 
 
-class Coordinates:
+class _Coordinates:
     """Define the coordinates of a table's columns.
 
     The coordinates specify a location on the screen and are referred
@@ -95,7 +95,7 @@ class Browser(signals.Observer):
             is scrolled vertically.
         _cur_col: The currently selected column.  This changes whenever the
             table is scrolled horizontally.
-        _col_coords ([Coordinates]): The k'th element is the coordinates of the
+        _col_coords ([_Coordinates]): The k'th element is the coordinates of the
             k'th table column.  This changes whenever the table columns are
             resized.
         _pad: The pad that displays everything.  This changes whenever new
@@ -187,7 +187,7 @@ class Browser(signals.Observer):
         """
         assert(len(col_widths) == len(self._COL_NAMES))
         self._col_coords.clear()
-        self._col_coords.append(Coordinates(0, col_widths[0]-1, col_widths[0]))
+        self._col_coords.append(_Coordinates(0, col_widths[0]-1, col_widths[0]))
 
         # For any column, end - beg = width - 1, and beg = 1 + prev_col.sep.
         # If a column's width is 0, then set its sep to prev.sep so that there
@@ -198,7 +198,7 @@ class Browser(signals.Observer):
             beg = prev_sep + 1
             end = prev_sep + width
             sep = prev_sep + width + 1 if width > 0 else prev_sep
-            self._col_coords.append(Coordinates(beg, end, sep))
+            self._col_coords.append(_Coordinates(beg, end, sep))
 
     # TODO: save the query so that the same entries will be shown after a
     # resize.
@@ -397,7 +397,7 @@ class Browser(signals.Observer):
                              positions.BROWSER_UPPER_LEFT_COORDS[1]]
         self._SCR_COORDS = [positions.BROWSER_UPPER_LEFT_COORDS,
                             positions.BROWSER_BOTTOM_RIGHT_COORDS]
-        self._last_vis_row = self._VIS_RNG[0]
+        self._last_vis_row = self._VIS_RNG[0] + self._first_vis_row
         self._last_vis_col = self._VIS_RNG[1]
         self.redraw()
 

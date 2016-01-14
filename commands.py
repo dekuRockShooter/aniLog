@@ -254,6 +254,7 @@ class Delete(Command, signals.Subject):
         cur_db.execute(s)
         cur_db.commit()
         self.emit(signals.Signal.ENTRY_DELETED)
+        selections.clear()
 
 
 class Copy(Command):
@@ -292,6 +293,7 @@ class Copy(Command):
                 row[idx] = '"{}"'.format(val)
             entries.append(tuple(row))
         shared.CopyBuffer.set(shared.CopyBuffer.DEFAULT_KEY, entries)
+        selections.clear()
 
 
 class Paste(Command, signals.Subject):
@@ -357,6 +359,7 @@ class RemoveTable(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
+        selections = shared.SelectBuffer().get()
         stat_bar = status_bar.StatusBarRegistry.get()
         buffer = browser.BrowserRegistry.get_buffer()
         cmd_line = cmd_line_test.CommandLineRegistry.get()
@@ -364,10 +367,10 @@ class RemoveTable(Command, signals.Subject):
         try:
             if not args:
                 buffer.remove_cur()
-                return
             elif args.isdigit():
                 buffer.remove_by_id(int(args))
-                return
+            selections.clear()
+            return
         except KeyError:
             pass
         except ValueError:
@@ -386,6 +389,7 @@ class RemoveTable(Command, signals.Subject):
             for id, name in iter(name_gen):
                 if pattern.search(name) is not None:
                     buffer.remove_by_id(id)
+                    selections.clear()
                     return
         except KeyError:
             stat_bar.prompt('No matching table found.', enums.Prompt.ERROR)
@@ -409,18 +413,21 @@ class SwitchTable(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
+        selections = shared.SelectBuffer.get()
         buffer = browser.BrowserRegistry.get_buffer()
         stat_bar = status_bar.StatusBarRegistry.get()
         cmd_line = cmd_line_test.CommandLineRegistry.get()
         args = cmd_line.get_cmd_args()
         if self._switch_to_prev(cmd_line, args):
             buffer.set_cur_to_prev()
+            selections.clear()
             return
         if not args:
             stat_bar.prompt('usage: b id/regex', enums.Prompt.ERROR)
             return
         try:
             buffer.set_cur_from_id(int(args))
+            selections.clear()
         except KeyError:
             pass
         except ValueError:
@@ -436,6 +443,7 @@ class SwitchTable(Command, signals.Subject):
                 if pattern.search(name) is not None:
                     buffer.set_cur_from_name(name)
                     self.emit(signals.Signal.BROWSER_SWITCHED)
+                    selections.clear()
                     return
         except KeyError:
             stat_bar.prompt('No matching table found.', enums.Prompt.ERROR)
@@ -475,6 +483,7 @@ class Edit(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
+        selections = shared.SelectBuffer.get()
         cmd_line = cmd_line_test.CommandLineRegistry.get()
         buffer = browser.BrowserRegistry.get_buffer()
         stat_bar = status_bar.StatusBarRegistry.get()
@@ -484,6 +493,7 @@ class Edit(Command, signals.Subject):
         db_name = ''
         table_names = []
         table_name = ''
+        # TODO: This try-block is uneccesary--just use an if-block.
         try:
             names = self._parse(args)
             if names[0] is None:
@@ -518,6 +528,7 @@ class Edit(Command, signals.Subject):
         buffer = browser.BrowserRegistry.get_buffer()
         buffer.set_cur_from_name(table_name)
         self.emit(signals.Signal.BROWSER_OPENED)
+        selections.clear()
 
     def _parse(self, args):
             """Return a combination of db name, table name, and id.
@@ -573,6 +584,7 @@ class Filter(Command, signals.Subject):
         signals.Subject.__init__(self)
 
     def execute(self):
+        selections = shared.SelectBuffer.get()
         stat_bar = status_bar.StatusBarRegistry.get()
         cmd_line = cmd_line_test.CommandLineRegistry.get()
         args = cmd_line.get_cmd_args()
@@ -593,6 +605,7 @@ class Filter(Command, signals.Subject):
                        val=args)
         rows = cur_db.execute(s)
         self.emit(signals.Signal.NEW_QUERY, rows)
+        selections.clear()
 
 
 class Sort(Command, signals.Subject):
@@ -610,6 +623,7 @@ class Sort(Command, signals.Subject):
     # much easier to follow.
     def execute(self):
         #cur_browser = browser.BrowserRegistry.get_cur()
+        selections = shared.SelectBuffer.get()
         stat_bar = status_bar.StatusBarRegistry.get()
         cur_browser = browser.BrowserRegistry.get_buffer().get()
         db_name = cur_browser.get_db_name()
@@ -644,6 +658,7 @@ class Sort(Command, signals.Subject):
                 dir=direction)
         rows = cur_db.execute(s)
         self.emit(signals.Signal.NEW_QUERY, rows)
+        selections.clear()
 
 
 class Write(Command):
@@ -746,11 +761,13 @@ class Select(Command, signals.Subject):
     def execute(self):
         table = browser.BrowserRegistry.get_buffer().get()
         selection_pk = str(table.get_cur_row_pks())
-        buffer = shared.SelectBuffer.get()
-        if selection_pk in buffer:
-            buffer.discard(selection_pk)
+        selections = shared.SelectBuffer.get()
+        if selection_pk in selections:
+            selections.discard(selection_pk)
         else:
-            buffer.add(selection_pk)
+            selections.add(selection_pk)
+        # TODO: If there's a signal for selecting a row, there should be a
+        # signal for unselecting a row.
         self.emit(signals.Signal.ENTRIES_SELECTED)
 
     def _parse_args(self, arg_str):
@@ -843,6 +860,7 @@ class LoadSession(Command, signals.Subject):
 
     def execute(self):
         all_tables_loaded = True
+        selections = shared.SelectBuffer.get()
         buffer = browser.BrowserRegistry.get_buffer()
         stat_bar = status_bar.StatusBarRegistry.get()
         cmd_line = cmd_line_test.CommandLineRegistry.get()
@@ -873,6 +891,7 @@ class LoadSession(Command, signals.Subject):
             stat_bar.prompt('Some tables could not be loaded.',
                             enums.Prompt.ERROR)
         session.close()
+        selections.clear()
 
 
 class SendSignal(Command, signals.Subject):

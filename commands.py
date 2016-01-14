@@ -28,6 +28,7 @@
 import json
 import curses
 import re
+import sre_constants
 import signals
 import enums
 import browser
@@ -377,6 +378,10 @@ class RemoveTable(Command, signals.Subject):
         # work.  Instead, it raises a KeyError.
         try:
             pattern = re.compile(args)
+        except sre_constants.error as err:
+            stat_bar.prompt(str(err), enums.Prompt.ERROR)
+            return
+        try:
             name_gen = buffer.name_generator()
             for id, name in iter(name_gen):
                 if pattern.search(name) is not None:
@@ -422,6 +427,10 @@ class SwitchTable(Command, signals.Subject):
             pass
         try:
             pattern = re.compile(args)
+        except sre_constants.error as err:
+            stat_bar.prompt(str(err), enums.Prompt.ERROR)
+            return
+        try:
             name_gen = buffer.name_generator()
             for id, name in iter(name_gen):
                 if pattern.search(name) is not None:
@@ -432,12 +441,15 @@ class SwitchTable(Command, signals.Subject):
             stat_bar.prompt('No matching table found.', enums.Prompt.ERROR)
 
     def tab(self, args):
+        stat_bar = status_bar.StatusBarRegistry.get()
         buffer = browser.BrowserRegistry.get_buffer()
-        pattern = re.compile(args)
+        try:
+            pattern = re.compile(args)
+        except sre_constants.error as err:
+            stat_bar.prompt(str(err), enums.Prompt.ERROR)
+            return lambda : (x for x in range(0))
         name_iter = iter(buffer.name_generator())
         def f():
-            #buffer = browser.BrowserRegistry.get_buffer()
-            #pattern = re.compile(args)
             name_iter = iter(buffer.name_generator())
             name_gen = (name for id, name in name_iter if\
                         pattern.search(name) is not None)

@@ -150,7 +150,7 @@ class InputBar(signals.Observer):
         """
         line = self._win.instr(0, 0)
         line = line.decode('utf-8').strip()
-        if line and (line != self._history[0]):
+        if line and ((not self._history) or (line != self._history[0])):
             self._history.insert(0, line)
             self._win.move(0, 0)
             self._win.clrtoeol()

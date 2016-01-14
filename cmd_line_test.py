@@ -145,11 +145,12 @@ class InputBar(signals.Observer):
     def _on_press_enter(self):
         """Add the command line contents to the history array.
 
-        If nothing was entered, then the history array is unmodified.
+        If the line is empty or is the same as the most recently
+        entered line, then the history array is unmodified.
         """
         line = self._win.instr(0, 0)
         line = line.decode('utf-8').strip()
-        if line:
+        if line and (line != self._history[0]):
             self._history.insert(0, line)
             self._win.move(0, 0)
             self._win.clrtoeol()

@@ -894,6 +894,48 @@ class LoadSession(Command, signals.Subject):
         selections.clear()
 
 
+class Increment(Command, signals.Subject):
+    def __init__(self, name, desc, quantifier=1, **kwargs):
+        Command.__init__(self, name, desc, quantifier, **kwargs)
+        signals.Subject.__init__(self)
+
+    def execute(self):
+        selections = shared.SelectBuffer.get()
+        stat_bar = status_bar.StatusBarRegistry.get()
+        cur_browser = browser.BrowserRegistry.get_buffer().get()
+        db_name = cur_browser.get_db_name()
+        table_name = cur_browser.get_table_name()
+        try:
+            cur_db = shared.DBRegistry.get_db(db_name)
+        except KeyError:
+            stat_bar.prompt('No connection to the database.',
+                              enums.Prompt.ERROR)
+            return
+        col_name = cur_browser.get_cur_col_name()
+        col_names = cur_db.get_col_names(table_name)
+        col_idx = col_names.index(col_name)
+        s = 'select * from "{table}" where rowid in ({vals})'.format(
+                table=table_name,
+                vals=','.join(selections))
+        rows = cur_db.execute(s)
+        for row in rows:
+            row = list(row)
+            # TODO: might be a float, or not a number.
+            new_val = int(row[col_idx]) + 1
+            s = 'update "{table}" set "{col_name}"="{value}"\
+                    where "{primary_key}"="{id}"'.format(
+                            table=cur_browser.get_table_name(),
+                            col_name=cur_browser.get_cur_col_name(),
+                            value=new_val,
+                            primary_key=cur_browser.PRIMARY_KEY,
+                            id=row[0])
+            cur_db.execute(s)
+        cur_db.commit()
+        selections.clear()
+        # TODO: Entries are not updated on screen; a refresh is needed.
+        self.emit(signals.Signal.ENTRY_UPDATED)
+
+
 class SendSignal(Command, signals.Subject):
     def __init__(self, signal, name, desc, quantifier=1, **kwargs):
         Command.__init__(self, name, desc, quantifier, **kwargs)

@@ -352,8 +352,35 @@ class Browser(signals.Observer):
         coord = self._col_coords[self._cur_col]
         new_value = str(self.get_cur_cell())
         col_width = coord.end - coord.beg + 1
-
         blank_col = ''.join([' ' for x in range(col_width)])
+        def process(row_idx, pk):
+            cmd = 'select "{col_name}" from "{table}" where'\
+                    ' "{prim_key}"="{key}"'.format(\
+                    col_name=self._COL_NAMES[self._cur_col],
+                    table=self._TABLE_NAME,
+                    prim_key=self.PRIMARY_KEY,
+                    key=str(pk))
+            rows = self._DB.execute(cmd)
+            new_value = str(list(rows[0])[0])
+            # clear the column
+            self._pad.addstr(row_idx, coord.beg, blank_col)
+            # update the column
+            self._pad.addnstr(row_idx, coord.beg, new_value, col_width)
+        self._for_each_selected_row(process)
+        self.redraw()
+
+    def _for_each_selected_row(self, process):
+        """rUN A function over all selected rows.
+
+        This function iterates over all selected rows (or only the
+        current row if none are selected), and executes the given
+        function during each iteration.
+
+        Args:
+            process: a function that takes two arguments.  The first
+                     is the zero-based index of a selected row, and
+                     the second is its primary key.
+        """
         selections = shared.SelectBuffer.get()
         if not selections:
             selections = [str(self._primary_keys[self._cur_row])]
@@ -363,19 +390,8 @@ class Browser(signals.Observer):
             row_idx = bisect.bisect_left(self._primary_keys, pk)
             if row_idx != len(self._primary_keys) and\
                     self._primary_keys[row_idx] == pk:
-                cmd = 'select "{col_name}" from "{table}" where "{prim_key}"="{key}"'.format(\
-                               col_name=self._COL_NAMES[self._cur_col],
-                               table=self._TABLE_NAME,
-                               prim_key=self.PRIMARY_KEY,
-                               key=str(pk))
-                rows = self._DB.execute(cmd)
-                new_value = str(list(rows[0])[0])
-                # clear the column
-                self._pad.addstr(row_idx, coord.beg, blank_col)
-                # update the column
-                self._pad.addnstr(row_idx, coord.beg, new_value, col_width)
+                process(row_idx, pk)
         selections.clear()
-        self.redraw()
 
     # TODO: This redraws the table with one less row.  Make it able to redraw
     # the table without all the deleted rows.
@@ -388,18 +404,14 @@ class Browser(signals.Observer):
         """
         selections = shared.SelectBuffer.get()
         selections_gen = (k for k in reversed(sorted(selections)))
-        for pk_str in iter(selections_gen):
-            pk = int(pk_str)
-            row_idx = bisect.bisect_left(self._primary_keys, pk)
-            if row_idx != len(self._primary_keys) and\
-                    self._primary_keys[row_idx] == pk:
-                self._primary_keys.pop(row_idx)
-                self._row_count = self._row_count - 1
-                self._pad.move(row_idx, 0)
-                self._pad.deleteln()
+        def process(row_idx, pk):
+            self._primary_keys.pop(row_idx)
+            self._row_count = self._row_count - 1
+            self._pad.move(row_idx, 0)
+            self._pad.deleteln()
+        self._for_each_selected_row(process)
         if self._cur_row >= self._row_count:
             self._cur_row = self._row_count - 1
-        selections.clear()
         self.redraw()
 
     # TODO: Resize horizontally.

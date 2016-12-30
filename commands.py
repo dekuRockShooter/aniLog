@@ -911,6 +911,8 @@ class Increment(Command, signals.Subject):
             stat_bar.prompt('No connection to the database.',
                               enums.Prompt.ERROR)
             return
+        if not selections:
+            selections.add(str(cur_browser.get_cur_row_pks()))
         col_name = cur_browser.get_cur_col_name()
         col_names = cur_db.get_col_names(table_name)
         col_idx = col_names.index(col_name)
@@ -931,7 +933,6 @@ class Increment(Command, signals.Subject):
                             id=row[0])
             cur_db.execute(s)
         cur_db.commit()
-        selections.clear()
         # TODO: Entries are not updated on screen; a refresh is needed.
         self.emit(signals.Signal.ENTRY_UPDATED)
 

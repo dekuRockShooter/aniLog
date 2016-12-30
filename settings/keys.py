@@ -15,6 +15,7 @@ class CommandMap:
         CommandMap.cmd_map = {
             'filter': commands.Filter('', ''),
             'update': commands.Update('', ''),
+            'increment': commands.Increment('', ''),
             'new_entry': commands.Insert('', ''),
             'del_entry': commands.Delete('', ''),
             'sort': commands.Sort('', ''),
@@ -110,4 +111,5 @@ class KeyMap:
         KeyMap.key_map.add_key('/',commands.Write('filter ', '', ''))
         KeyMap.key_map.add_key('<Rsz>', cmd_map['resize'])
         KeyMap.key_map.add_key('v', cmd_map['select'])
+        KeyMap.key_map.add_key('++', cmd_map['increment'])
         return KeyMap.key_map

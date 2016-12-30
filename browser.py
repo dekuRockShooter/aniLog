@@ -167,6 +167,7 @@ class Browser(signals.Observer):
         cmd_map['resize'].register(self)
         cmd_map['select'].register(self)
         cmd_map['paste'].register(self)
+        cmd_map['increment'].register(self)
 
     # TODO: Don't hardcode the beginning of the first column. It wont
     # necessarily be zero. Also, account for zero widths.
@@ -352,12 +353,28 @@ class Browser(signals.Observer):
         new_value = str(self.get_cur_cell())
         col_width = coord.end - coord.beg + 1
 
-        # clear the column
         blank_col = ''.join([' ' for x in range(col_width)])
-        self._pad.addstr(self._cur_row, coord.beg, blank_col)
-
-        # update the column
-        self._pad.addnstr(self._cur_row, coord.beg, new_value, col_width)
+        selections = shared.SelectBuffer.get()
+        if not selections:
+            selections = [str(self._primary_keys[self._cur_row])]
+        selections_gen = (k for k in reversed(sorted(selections)))
+        for pk_str in iter(selections_gen):
+            pk = int(pk_str)
+            row_idx = bisect.bisect_left(self._primary_keys, pk)
+            if row_idx != len(self._primary_keys) and\
+                    self._primary_keys[row_idx] == pk:
+                cmd = 'select "{col_name}" from "{table}" where "{prim_key}"="{key}"'.format(\
+                               col_name=self._COL_NAMES[self._cur_col],
+                               table=self._TABLE_NAME,
+                               prim_key=self.PRIMARY_KEY,
+                               key=str(pk))
+                rows = self._DB.execute(cmd)
+                new_value = str(list(rows[0])[0])
+                # clear the column
+                self._pad.addstr(row_idx, coord.beg, blank_col)
+                # update the column
+                self._pad.addnstr(row_idx, coord.beg, new_value, col_width)
+        selections.clear()
         self.redraw()
 
     # TODO: This redraws the table with one less row.  Make it able to redraw

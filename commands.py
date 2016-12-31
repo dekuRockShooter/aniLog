@@ -36,6 +36,7 @@ import status_bar
 import cmd_line_test
 import settings.positions as positions
 import shared
+import sqlite3
 
 
 class Command:
@@ -922,8 +923,15 @@ class Increment(Command, signals.Subject):
         rows = cur_db.execute(s)
         for row in rows:
             row = list(row)
-            # TODO: might be a float, or not a number.
-            new_val = int(row[col_idx]) + 1
+            try:
+                # Converting to float makes this work for fields that hold
+                # ints and floats.  If int, then the float is implicitely
+                # converted to an int when inserted to the database.
+                new_val = float(row[col_idx]) + 1
+            except ValueError:
+                stat_bar.prompt('Only numbers can be incremented.',
+                                enums.Prompt.ERROR)
+                return
             s = 'update "{table}" set "{col_name}"="{value}"\
                     where "{primary_key}"="{id}"'.format(
                             table=cur_browser.get_table_name(),
@@ -931,9 +939,13 @@ class Increment(Command, signals.Subject):
                             value=new_val,
                             primary_key=cur_browser.PRIMARY_KEY,
                             id=row[0])
-            cur_db.execute(s)
+            try:
+                cur_db.execute(s)
+            except sqlite3.IntegrityError:
+                stat_bar.prompt('Primary key cannot be incremented.',
+                                enums.Prompt.ERROR)
+                return
         cur_db.commit()
-        # TODO: Entries are not updated on screen; a refresh is needed.
         self.emit(signals.Signal.ENTRY_UPDATED)
 
 

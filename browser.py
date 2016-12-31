@@ -391,6 +391,7 @@ class Browser(signals.Observer):
             if row_idx != len(self._primary_keys) and\
                     self._primary_keys[row_idx] == pk:
                 process(row_idx, pk)
+        self._on_select_loop(selections, curses.A_NORMAL)
         selections.clear()
 
     # TODO: This redraws the table with one less row.  Make it able to redraw
@@ -614,6 +615,18 @@ class Browser(signals.Observer):
         self._select_buffer = select_buffer
 
     def _on_select_loop(self, selections, attr):
+        """Toggle selection of rows.
+
+        Args:
+            selections: a list of the primary keys of the rows to
+                        toggle selection for.
+            attr: either curses.A_REVERSE or curses.A_NORMAL.  If
+                  curses.A_REVERSE, then the rows will be selected.
+                  If curses.A_NORMAL, then the rows will be unselected.
+
+        Returns:
+            Nothing.
+        """
         for pk_str in selections:
             pk = int(pk_str)
             row_idx = bisect.bisect_left(self._primary_keys, pk)
